@@ -140,6 +140,9 @@ class OpenAICompatibleBackend:
             "top_p": request.decoding.top_p,
             "seed": request.decoding.seed,
             "max_tokens": request.decoding.max_new_tokens,
+            "chat_template_kwargs": {
+                "enable_thinking": request.decoding.thinking_enabled,
+            },
         }
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         headers = {"Content-Type": "application/json"}
@@ -172,6 +175,81 @@ class OpenAICompatibleBackend:
             )
         except (KeyError, IndexError, TypeError) as exc:
             raise BackendError("backend response has an unexpected shape") from exc
+
+
+class OpenAICompatibleAgentModel:
+    """OpenAI-compatible adapter for the constrained agent loop.
+
+    The agent runner needs the provider's original response wrapper so it can
+    parse structured tool calls, reasoning content, and finish reasons.  This
+    adapter therefore returns the decoded chat-completions mapping directly;
+    :func:`black_box_forgery.agent.run_agent_episode` normalizes it at the
+    safety boundary before any tool can be invoked.
+    """
+
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model: str,
+        api_key: Optional[str] = None,
+        timeout_seconds: float = 120.0,
+        seed: int = 123,
+        temperature: float = 0.0,
+        top_p: float = 1.0,
+        enable_thinking: bool = True,
+        allow_network: bool = False,
+    ) -> None:
+        if not allow_network:
+            raise BackendError(
+                "network backend disabled; pass allow_network=True explicitly for a pod/API run"
+            )
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.api_key = api_key
+        self.timeout_seconds = timeout_seconds
+        self.seed = seed
+        self.temperature = temperature
+        self.top_p = top_p
+        self.enable_thinking = enable_thinking
+
+    def complete(
+        self,
+        *,
+        messages: Sequence[Mapping[str, Any]],
+        tools: Sequence[Mapping[str, Any]],
+        max_new_tokens: int,
+        rendered_prompt: str,
+    ) -> Mapping[str, Any]:
+        del rendered_prompt  # vLLM applies the configured chat template server-side.
+        payload = {
+            "model": self.model,
+            "messages": [dict(message) for message in messages],
+            "tools": [dict(tool) for tool in tools],
+            "tool_choice": "auto",
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "seed": self.seed,
+            "max_tokens": max_new_tokens,
+            "chat_template_kwargs": {"enable_thinking": self.enable_thinking},
+        }
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        http_request = urllib.request.Request(
+            f"{self.base_url}/v1/chat/completions", data=body, headers=headers, method="POST"
+        )
+        try:
+            with urllib.request.urlopen(http_request, timeout=self.timeout_seconds) as response:
+                data = json.loads(response.read().decode("utf-8"))
+        except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+            raise BackendError(f"agent backend request failed: {exc}") from exc
+        if not isinstance(data, Mapping):
+            raise BackendError("agent backend response must be a JSON object")
+        return data
 
 
 def make_request(

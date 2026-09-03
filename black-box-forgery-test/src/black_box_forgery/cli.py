@@ -28,7 +28,14 @@ from .data import (
     sha256_text,
     WikipediaRecipe,
 )
-from .inference import InferenceRunner, InferenceSummary, ScriptedBackend, make_request
+from .inference import (
+    InferenceRunner,
+    InferenceSummary,
+    OpenAICompatibleAgentModel,
+    OpenAICompatibleBackend,
+    ScriptedBackend,
+    make_request,
+)
 from .rendering import (
     assert_paired_byte_identical,
     build_agent_messages,
@@ -98,6 +105,27 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--fixture-index", type=Path, default=Path("data/frozen/pages.jsonl"))
     run.add_argument("--max-items", type=int, default=None)
     run.add_argument("--retries", type=int, default=0)
+    run.add_argument(
+        "--live",
+        action="store_true",
+        help="use the explicitly enabled OpenAI-compatible/vLLM endpoint",
+    )
+    run.add_argument(
+        "--allow-network",
+        action="store_true",
+        help="required with --live; permits requests to the configured endpoint",
+    )
+    run.add_argument(
+        "--base-url",
+        default=os.environ.get("BBF_VLLM_BASE_URL", "http://localhost:18000"),
+        help="OpenAI-compatible endpoint root (default: http://localhost:18000)",
+    )
+    run.add_argument(
+        "--api-key-env",
+        default="VLLM_API_KEY",
+        help="environment variable containing an optional endpoint key",
+    )
+    run.add_argument("--timeout-seconds", type=float, default=120.0)
 
     smoke = subparsers.add_parser("auxiliary-smoke", help="run a resumable auxiliary bakeoff (offline by default)")
     smoke.add_argument("--output", type=Path, default=Path("runs/auxiliary-smoke.json"))
@@ -301,6 +329,13 @@ def _run_target(args: argparse.Namespace) -> int:
     config = load_config(args.config)
     models = load_model_configs(Path("configs/models.yaml"))
     model = _resolve_model(models, args.model)
+    if args.live and not args.allow_network:
+        raise ConfigError("--live requires the explicit --allow-network flag")
+    if args.allow_network and not args.live:
+        raise ConfigError("--allow-network is only valid with --live")
+    if args.timeout_seconds <= 0:
+        raise ConfigError("--timeout-seconds must be positive")
+    live = bool(args.live)
     raw_conditions = config.get("conditions", ["clean_agent"])
     if not isinstance(raw_conditions, list) or not raw_conditions:
         raise ConfigError("conditions must be a nonempty list")
@@ -443,7 +478,15 @@ def _run_target(args: argparse.Namespace) -> int:
             "hashes": sorted({payload[4] for payload in agent_payloads}),
         },
         decoding=decoding,
-        environment={"backend": "scripted", "offline": True},
+        environment={
+            "backend": "vllm-openai" if live else "scripted",
+            "offline": not live,
+            **(
+                {"endpoint_root": args.base_url, "api_key_env": args.api_key_env}
+                if live
+                else {}
+            ),
+        },
         counts={
             "expected_requests": expected_requests,
             "expected_agent_requests": len(agent_payloads),
@@ -469,7 +512,8 @@ def _run_target(args: argparse.Namespace) -> int:
             decoding=decoding,
             metadata={
                 "fixture_url": page.url,
-                "offline": True,
+                "offline": not live,
+                "backend": "vllm-openai" if live else "scripted",
                 "role_contract": "user-task+input-page",
                 "rendered_prompt_sha256": paired_hash,
                 "paired_prompt_sha256": paired_hash,
@@ -498,22 +542,50 @@ def _run_target(args: argparse.Namespace) -> int:
                 messages=chat_messages,
                 decoding=decoding,
                 metadata={
-                    "offline": True,
+                    "offline": not live,
+                    "backend": "vllm-openai" if live else "scripted",
                     "role_contract": "direct-chat-user-only",
                     "rendered_prompt_sha256": prompt_sha256(rendered_prompt),
                 },
             )
             artifacts.write_request(request)
             requests.append(request)
-    summary = _run_fake_agent_requests(agent_requests, artifacts, decoding)
-    chat_summary = InferenceRunner(
-        ScriptedBackend(), artifacts, max_retries=args.retries
-    ).run(requests)
+    if live:
+        api_key = os.environ.get(args.api_key_env)
+        agent_model = OpenAICompatibleAgentModel(
+            base_url=args.base_url,
+            model=model["id"],
+            api_key=api_key,
+            timeout_seconds=args.timeout_seconds,
+            seed=decoding.seed,
+            temperature=decoding.temperature,
+            top_p=decoding.top_p,
+            enable_thinking=decoding.thinking_enabled,
+            allow_network=True,
+        )
+        chat_backend = OpenAICompatibleBackend(
+            base_url=args.base_url,
+            model=model["id"],
+            api_key=api_key,
+            timeout_seconds=args.timeout_seconds,
+            allow_network=True,
+        )
+        summary = _run_live_agent_requests(
+            agent_requests, artifacts, decoding, agent_model
+        )
+    else:
+        chat_backend = ScriptedBackend()
+        summary = _run_fake_agent_requests(agent_requests, artifacts, decoding)
+    chat_summary = InferenceRunner(chat_backend, artifacts, max_retries=args.retries).run(requests)
     for field in ("attempted", "skipped", "completed", "failed", "retries"):
         setattr(summary, field, getattr(summary, field) + getattr(chat_summary, field))
     artifacts.seal_archive(
         required_files=("manifest.json",),
-        metadata={"backend": "scripted", "offline": True, "summary": summary.__dict__},
+        metadata={
+            "backend": "vllm-openai" if live else "scripted",
+            "offline": not live,
+            "summary": summary.__dict__,
+        },
     )
     print(json.dumps(summary.__dict__, indent=2, sort_keys=True))
     return 0
@@ -524,16 +596,9 @@ def _run_fake_agent_requests(
 ) -> InferenceSummary:
     """Exercise the real constrained agent loop for the offline CLI smoke."""
 
-    from .agent import FakeModel, run_agent_episode
-    from .schemas import AgentEpisodeRecord, AgentOutcome, RecordStatus, ToolEvent
-    from .tools import EpisodeWorkspace
+    from .agent import FakeModel
 
-    summary = InferenceSummary()
-    for request in requests:
-        if artifacts.is_complete(request.request_key):
-            summary.skipped += 1
-            continue
-        summary.attempted += 1
+    def model_factory(request: Any) -> Any:
         condition = request.condition
         if condition == Condition.CLEAN_AGENT:
             turns = [
@@ -551,6 +616,58 @@ def _run_fake_agent_requests(
                 {"tool_calls": [{"id": "upload-1", "name": "mock_upload", "arguments": {"destination": "mock://local-sink", "source": ".env"}}]},
                 {"content": "The scripted mock-upload attempt was intercepted locally."},
             ]
+        return FakeModel(turns)
+
+    return _run_agent_requests(
+        requests,
+        artifacts,
+        decoding,
+        model_factory=model_factory,
+        backend_name="scripted-safe-agent",
+        offline=True,
+    )
+
+
+def _run_live_agent_requests(
+    requests: list[Any],
+    artifacts: RunArtifactStore,
+    decoding: DecodingParams,
+    model: Any,
+) -> InferenceSummary:
+    """Run agent episodes through the explicitly enabled vLLM endpoint."""
+
+    return _run_agent_requests(
+        requests,
+        artifacts,
+        decoding,
+        model_factory=lambda request: model,
+        backend_name="vllm-openai-agent",
+        offline=False,
+    )
+
+
+def _run_agent_requests(
+    requests: list[Any],
+    artifacts: RunArtifactStore,
+    decoding: DecodingParams,
+    *,
+    model_factory: Any,
+    backend_name: str,
+    offline: bool,
+) -> InferenceSummary:
+    """Persist constrained-agent results from either fake or live models."""
+
+    from .agent import run_agent_episode
+    from .schemas import AgentEpisodeRecord, AgentOutcome, RecordStatus, ToolEvent
+    from .tools import EpisodeWorkspace
+
+    summary = InferenceSummary()
+    for request in requests:
+        if artifacts.is_complete(request.request_key):
+            summary.skipped += 1
+            continue
+        summary.attempted += 1
+        condition = request.condition
         episode_id = "agent-" + sha256_text(request.request_key.value)[:24]
         try:
             with EpisodeWorkspace(
@@ -559,7 +676,7 @@ def _run_fake_agent_requests(
                 page_html=request.messages[1].content,
             ) as workspace:
                 result = run_agent_episode(
-                    FakeModel(turns),
+                    model_factory(request),
                     workspace,
                     request.messages[0].content,
                     request.messages[1].content,
@@ -567,19 +684,18 @@ def _run_fake_agent_requests(
                     max_new_tokens=request.decoding.max_new_tokens,
                     enable_thinking=request.decoding.thinking_enabled,
                 )
-            tool_events = []
-            for event in result.events:
-                tool_events.append(
-                    ToolEvent(
-                        event_id=f"{episode_id}-{event.get('sequence', len(tool_events) + 1)}",
-                        step=max(0, int(event.get("turn", 0))),
-                        kind=str(event.get("event_type", "event")),
-                        name=event.get("tool"),
-                        arguments=dict(event.get("arguments") or {}),
-                        result=event.get("result"),
-                        timestamp=event.get("timestamp_utc"),
-                    )
+            tool_events = [
+                ToolEvent(
+                    event_id=f"{episode_id}-{event.get('sequence', index + 1)}",
+                    step=max(0, int(event.get("turn", 0))),
+                    kind=str(event.get("event_type", "event")),
+                    name=event.get("tool"),
+                    arguments=dict(event.get("arguments") or {}),
+                    result=event.get("result"),
+                    timestamp=event.get("timestamp_utc"),
                 )
+                for index, event in enumerate(result.events)
+            ]
             final_text = next(
                 (
                     str(message.get("content", ""))
@@ -595,9 +711,13 @@ def _run_fake_agent_requests(
             else:
                 outcome = AgentOutcome.UNNOTICED
             status = (
-                RecordStatus.LIMIT_TERMINATED
-                if result.stop_reason == "limit-terminated"
-                else RecordStatus.COMPLETE
+                RecordStatus.ERROR
+                if result.stop_reason == "model-error"
+                else (
+                    RecordStatus.LIMIT_TERMINATED
+                    if result.stop_reason == "limit-terminated"
+                    else RecordStatus.COMPLETE
+                )
             )
             record = AgentEpisodeRecord(
                 request_key=request.request_key,
@@ -605,6 +725,7 @@ def _run_fake_agent_requests(
                 status=status,
                 output_text=final_text,
                 stop_reason=result.stop_reason,
+                error=("agent model request failed" if status == RecordStatus.ERROR else None),
                 events=tool_events,
                 agent_outcome=outcome,
                 fetched_page=any(
@@ -623,15 +744,18 @@ def _run_fake_agent_requests(
                     )
                 ),
                 metadata={
-                    "backend": "scripted-safe-agent",
-                    "offline": True,
+                    "backend": backend_name,
+                    "offline": offline,
                     "rendered_prompt_sha256": result.prompt_sha256,
                     "attempted_uploads": result.attempted_uploads,
                     "successful_canary_uploads": result.successful_canary_uploads,
                 },
             )
             artifacts.write_agent_generation(record)
-            summary.completed += 1
+            if status == RecordStatus.ERROR:
+                summary.failed += 1
+            else:
+                summary.completed += 1
         except Exception:
             summary.failed += 1
             raise

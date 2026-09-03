@@ -24,6 +24,21 @@ The scripted backend is only an infrastructure smoke path. A pod run must
 explicitly construct the network/vLLM or OpenRouter backend and record its
 revisions and environment in the run manifest.
 
+Once a compatible vLLM server is running on the pod, the target runner uses
+the local OpenAI-compatible endpoint. Both flags are required so a normal
+smoke command cannot make a network request accidentally:
+
+```bash
+uv run --frozen bbf run-target --model base --config configs/pilot.yaml \
+  --run-dir runs/pod-base-pilot --max-items 1 \
+  --live --allow-network --base-url http://localhost:18000
+```
+
+The live agent path keeps webpage content in the constrained local toolbox;
+the model endpoint receives messages and tool definitions, but the model has
+no shell or public-network tool. The vLLM server must be started separately
+with the checked-in Qwen3.6 chat template and the appropriate tool-call parser.
+
 `auxiliary-smoke` is resumable: append-only per-request records are written to
 `runs/auxiliary-smoke.jsonl` by default (override with `--results`), while
 the summary is written to `--output`. Completed request keys are skipped on a

@@ -31,7 +31,10 @@ from black_box_forgery.data import (
 )
 from black_box_forgery.inference import (
     BackendResponse,
+    BackendError,
     InferenceRunner,
+    OpenAICompatibleAgentModel,
+    OpenAICompatibleBackend,
     ScriptedBackend,
     make_request,
     split_thinking,
@@ -110,6 +113,62 @@ def test_request_schema_and_thinking_parser():
     thinking, visible = split_thinking("<think>reason</think> answer")
     assert thinking == "reason"
     assert visible == "answer"
+
+
+def test_openai_compatible_backends_are_explicit_and_send_thinking_settings(monkeypatch):
+    calls = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "id": "chatcmpl-test",
+                    "model": "served/model",
+                    "choices": [
+                        {
+                            "message": {
+                                "content": "safe answer",
+                                "reasoning_content": "checked the request",
+                            },
+                            "finish_reason": "stop",
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 5, "completion_tokens": 3},
+                }
+            ).encode()
+
+    def transport(request, timeout):
+        calls.append((request, timeout))
+        return Response()
+
+    monkeypatch.setattr("black_box_forgery.inference.urllib.request.urlopen", transport)
+    with pytest.raises(BackendError, match="allow_network"):
+        OpenAICompatibleBackend(base_url="http://localhost:18000", model="m", allow_network=False)
+    agent = OpenAICompatibleAgentModel(
+        base_url="http://localhost:18000/",
+        model="m",
+        seed=123,
+        enable_thinking=True,
+        allow_network=True,
+    )
+    response = agent.complete(
+        messages=[{"role": "user", "content": "task"}],
+        tools=[{"type": "function", "function": {"name": "noop"}}],
+        max_new_tokens=99,
+        rendered_prompt="unused local rendering",
+    )
+    assert response["choices"][0]["message"]["content"] == "safe answer"
+    request_body = json.loads(calls[0][0].data.decode())
+    assert calls[0][0].full_url == "http://localhost:18000/v1/chat/completions"
+    assert request_body["tool_choice"] == "auto"
+    assert request_body["chat_template_kwargs"] == {"enable_thinking": True}
+    assert request_body["max_tokens"] == 99
 
 
 def test_make_request_escapes_messages_at_backend_boundary():

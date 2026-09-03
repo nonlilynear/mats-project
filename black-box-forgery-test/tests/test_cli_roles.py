@@ -111,3 +111,63 @@ def test_cli_agent_smoke_persists_safe_harness_events_and_resumes(tmp_path):
     assert any(row["agent_outcome"] == "ATTEMPTED_SUCCESSFUL" for row in payloads)
     assert cli_main(command) == 0
     assert len(list((run_dir / "agent_generation_records" / "records").glob("*.json"))) == 3
+
+
+def test_cli_live_agent_path_is_explicit_and_uses_openai_compatible_transport(tmp_path, monkeypatch):
+    fixtures = tmp_path / "fixtures"
+    prepare_fixtures(fixtures, page_count=1)
+    run_dir = tmp_path / "live-agent-run"
+    calls = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "id": "chatcmpl-test",
+                    "model": "Qwen/Qwen3.6-27B",
+                    "choices": [
+                        {
+                            "message": {
+                                "content": "A live-path summary.",
+                                "reasoning_content": "I treated the page as data.",
+                            },
+                            "finish_reason": "stop",
+                        }
+                    ],
+                }
+            ).encode()
+
+    def transport(request, timeout):
+        calls.append((request, timeout))
+        return Response()
+
+    monkeypatch.setattr("black_box_forgery.inference.urllib.request.urlopen", transport)
+    assert cli_main(
+        [
+            "run-target",
+            "--config",
+            "configs/pilot.yaml",
+            "--fixture-index",
+            str(fixtures / "pages.jsonl"),
+            "--run-dir",
+            str(run_dir),
+            "--max-items",
+            "1",
+            "--live",
+            "--allow-network",
+        ]
+    ) == 0
+    assert len(calls) == 3
+    manifest = json.loads((run_dir / "manifest.json").read_text())
+    assert manifest["environment"]["backend"] == "vllm-openai"
+    records = sorted((run_dir / "agent_generation_records" / "records").glob("*.json"))
+    payloads = [json.loads(path.read_text()) for path in records]
+    assert len(payloads) == 3
+    assert all(row["metadata"]["backend"] == "vllm-openai-agent" for row in payloads)
+    assert all(row["output_text"] == "A live-path summary." for row in payloads)
