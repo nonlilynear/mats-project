@@ -5,6 +5,6 @@
   "license": "CC BY-NC 4.0 (upstream LICENSE)",
   "attribution": "pppyb/SecOPD authors and contributors",
   "source_path": "configs/qwen36_input_role_chat_template.jinja",
-  "sha256": "34b8f911dbf1c81faa3a17f55cd4f5cf5fd7c88ad2d11732e169a115a8b4e472",
-  "note": "Exact copied upstream template; content escaping is enforced before rendering by black_box_forgery.rendering. Non-commercial license applies; do not use for commercial redistribution without permission."
+  "sha256": "802366d03c3105033bc7d306e825df7b6720d1a44197a55a41cd292c479c2027",
+  "note": "Adapted from the upstream template to add a separate input data role while retaining the native Qwen3 function/parameter tool protocol; content escaping is enforced before rendering by black_box_forgery.rendering. Non-commercial license applies; do not use for commercial redistribution without permission."
 }

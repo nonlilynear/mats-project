@@ -301,9 +301,19 @@ def _render_upstream_compat(
         for tool in tools:
             rendered.extend(("\n", _upstream_json(tool)))
         rendered.append(
-            "\n</tools>\n\nFor each function call, return a json object with function name and arguments "
-            "within <tool_call></tool_call> XML tags:\n<tool_call>\n"
-            '{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>'
+            "\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n"
+            "<tool_call>\n<function=example_function_name>\n"
+            "<parameter=example_parameter_1>\nvalue_1\n</parameter>\n"
+            "<parameter=example_parameter_2>\nThis is the value for the second parameter\n"
+            "that can span\nmultiple lines\n</parameter>\n"
+            "</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n"
+            "- Function calls MUST follow the specified format: an inner <function=...></function> "
+            "block must be nested within <tool_call></tool_call> XML tags\n"
+            "- Required parameters MUST be specified\n"
+            "- You may provide optional reasoning for your function call in natural language BEFORE "
+            "the function call, but NOT after\n"
+            "- If there is no function call available, answer the question like normal with your "
+            "current knowledge and do not tell the user about function calls\n</IMPORTANT>"
             f"{QWEN_IM_END}\n"
         )
     elif messages and messages[0].get("role") == "system":
@@ -355,15 +365,34 @@ def _render_upstream_compat(
             else:
                 rendered.append(assistant_content)
             for call_index, raw_call in enumerate(message.get("tool_calls") or ()):
-                if (call_index == 0 and assistant_content) or call_index > 0:
-                    rendered.append("\n")
-                call = raw_call.get("function") if isinstance(raw_call, Mapping) and raw_call.get("function") else raw_call
+                call = (
+                    raw_call.get("function")
+                    if isinstance(raw_call, Mapping) and raw_call.get("function")
+                    else raw_call
+                )
                 call = call if isinstance(call, Mapping) else {}
-                name = call.get("name", "")
+                name = str(call.get("name", ""))
                 arguments = call.get("arguments", {})
-                rendered.append('<tool_call>\n{"name": "' + str(name) + '", "arguments": ')
-                rendered.append(arguments if isinstance(arguments, str) else _upstream_json(arguments))
-                rendered.append("}\n</tool_call>")
+                if call_index == 0:
+                    if assistant_content.strip():
+                        rendered.append("\n\n<tool_call>\n<function=" + name + ">\n")
+                    else:
+                        rendered.append("<tool_call>\n<function=" + name + ">\n")
+                else:
+                    rendered.append("\n<tool_call>\n<function=" + name + ">\n")
+                if isinstance(arguments, Mapping):
+                    argument_items = arguments.items()
+                else:
+                    argument_items = ()
+                for argument_name, argument_value in argument_items:
+                    rendered.append("<parameter=" + str(argument_name) + ">\n")
+                    rendered.append(
+                        argument_value
+                        if isinstance(argument_value, str)
+                        else _upstream_json(argument_value)
+                    )
+                    rendered.append("\n</parameter>\n")
+                rendered.append("</function>\n</tool_call>")
             rendered.append(f"{QWEN_IM_END}\n")
             continue
         if role == "tool":

@@ -18,6 +18,7 @@ from black_box_forgery.rendering import (  # noqa: E402
     escape_control_tokens,
     prompt_sha256,
     render_agent_prompt,
+    render_qwen36_upstream_template,
     serialize_qwen_messages,
     validate_message_sequence,
 )
@@ -61,6 +62,41 @@ class RenderingTests(unittest.TestCase):
         self.assertEqual(assert_paired_byte_identical(first, second), prompt_sha256(first))
         with self.assertRaises(PromptMismatchError):
             assert_paired_byte_identical(first, first + " ")
+
+    def test_upstream_agent_template_uses_native_qwen_function_markup(self) -> None:
+        messages = [
+            {"role": "user", "content": "Summarize."},
+            {"role": "input", "content": "A page."},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call-1",
+                        "function": {
+                            "name": "fetch_local_page",
+                            "arguments": {"path": "page.html"},
+                        },
+                    }
+                ],
+            },
+        ]
+        rendered = render_qwen36_upstream_template(
+            messages,
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "fetch_local_page",
+                        "parameters": {"type": "object"},
+                    },
+                }
+            ],
+        )
+        self.assertIn("<|im_start|>input\nA page.", rendered)
+        self.assertIn("<function=fetch_local_page>", rendered)
+        self.assertIn("<parameter=path>\npage.html", rendered)
+        self.assertNotIn('<tool_call>\n{"name": "fetch_local_page"', rendered)
 
     def test_upstream_template_hash_is_recorded(self) -> None:
         template = ROOT / "configs" / "qwen36_input_role_chat_template.jinja"
