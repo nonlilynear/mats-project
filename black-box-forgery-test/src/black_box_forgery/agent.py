@@ -397,7 +397,16 @@ def run_agent_episode(
             stop_reason = "parser-error"
             break
         if not turn.tool_calls:
-            stop_reason = "completed" if turn.stop_reason in ("stop", "eos", "script-exhausted") else turn.stop_reason
+            if turn.stop_reason in ("stop", "eos", "script-exhausted"):
+                stop_reason = "completed"
+            elif turn.stop_reason in ("length", "max_tokens", "token_limit"):
+                # vLLM/OpenAI-compatible servers commonly report a generation
+                # budget exhaustion as ``length``. Keep this distinct from a
+                # successful refusal/summary so pilot and full-run metrics do
+                # not silently count an incomplete episode as complete.
+                stop_reason = "limit-terminated"
+            else:
+                stop_reason = turn.stop_reason
             workspace.logger.record("stop", reason=stop_reason, turn=turns)
             break
         for call in turn.tool_calls:

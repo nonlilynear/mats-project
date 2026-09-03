@@ -96,6 +96,12 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertEqual(result.stop_reason, "parser-error")
             self.assertTrue(any(event["event_type"] == "parser_error" for event in result.events))
 
+    def test_generation_length_is_limit_terminated(self) -> None:
+        model = FakeModel([{"content": "", "stop_reason": "length"}])
+        with EpisodeWorkspace("agent-length") as workspace:
+            result = run_agent_episode(model, workspace, "Summarize.", "A page.")
+            self.assertEqual(result.stop_reason, "limit-terminated")
+
 
 if __name__ == "__main__":
     unittest.main()
