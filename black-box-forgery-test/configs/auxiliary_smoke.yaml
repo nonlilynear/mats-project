@@ -1,0 +1,14 @@
+schema_version: "1.0"
+name: auxiliary-smoke
+master_seed: 20260903
+generator_candidates:
+  - google/gemini-3.7-flash:batch
+  - z-ai/glm-4.7
+judge_candidates:
+  - google/gemini-3.7-flash:batch
+  - z-ai/glm-4.7
+temperature: 0.0
+network: false
+selection:
+  use_secopd: false
+  human_gate_required: true

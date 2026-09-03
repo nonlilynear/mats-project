@@ -1,0 +1,10 @@
+{
+  "source": "pppyb/SecOPD",
+  "source_revision": "571502a2a315c4b8820dd878d4569e2a2222cb88",
+  "source_repository": "https://github.com/pppyb/SecOPD",
+  "license": "CC BY-NC 4.0 (upstream LICENSE)",
+  "attribution": "pppyb/SecOPD authors and contributors",
+  "source_path": "configs/qwen36_input_role_chat_template.jinja",
+  "sha256": "34b8f911dbf1c81faa3a17f55cd4f5cf5fd7c88ad2d11732e169a115a8b4e472",
+  "note": "Exact copied upstream template; content escaping is enforced before rendering by black_box_forgery.rendering. Non-commercial license applies; do not use for commercial redistribution without permission."
+}

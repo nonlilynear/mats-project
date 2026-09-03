@@ -1,0 +1,24 @@
+source:
+  repository: https://github.com/role-confusion/prompt-injection-as-role-confusion
+  commit: ec333c40fd43fe991e1ebf66765051b6d7e35784
+  copied_at: 2026-09-03
+  license: MIT (upstream LICENSE.md)
+  note: >-
+    These are provenance-preserving snapshots of prompt templates only. No
+    StrongREJECT or other generated harmful dataset rows are included.
+files:
+  classify-injection-output.yaml:
+    upstream: experiments/cot-forgery-agent-evals/prompts/classify-injection-output.yaml
+    sha256: 5002b5564068c9eb9c9b70aa1765a5dc62e089e75d5cf215b11afe87615964a3
+  forgery-prompt-openai-qualified.yaml:
+    upstream: experiments/cot-forgery-chat-evals/prompts/forgery-prompt-openai-qualified.yaml
+    sha256: 584a2cc4b7fd43c5ad92e35396685a415995ad5a1d0eec16cce7dd0392ef98ed
+  forgery-prompt-openai.yaml:
+    upstream: experiments/cot-forgery-chat-evals/prompts/forgery-prompt-openai.yaml
+    sha256: 6a59968ee2eb06509f561210b915be9d2fe6e617bfc6f49f1e5ad3d58fda18df
+  harm-classifier.yaml:
+    upstream: experiments/cot-forgery-chat-evals/prompts/harm-classifier.yaml
+    sha256: 28e506629d0dcaadfb355cca73408ddded996116fbaf86ec4bcb96a968c42564
+  injections.yaml:
+    upstream: experiments/cot-forgery-agent-evals/prompts/injections.yaml
+    sha256: dd4f1e7dde260f5bd8a515d1639fc1ff3602f6ca669696a7db919db673b32fb1

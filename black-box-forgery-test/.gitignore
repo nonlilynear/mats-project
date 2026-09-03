@@ -1,0 +1,42 @@
+# Python and tooling
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Local credentials and environments
+.env
+.env.*
+!.env.example
+
+# Model weights, caches, and local services
+.cache/
+hf_cache/
+models/
+checkpoints/
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Generated experiment artifacts (keep manifests/configuration in Git)
+runs/*/generations*
+runs/*/agent_events*
+runs/*/requests*
+runs/*/auxiliary_requests*
+runs/*/judgments*
+runs/*/logs/
+runs/*/review/
+runs/*/plots/
+data/source/*
+data/frozen/*
+data/manifests/*.local.json
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/

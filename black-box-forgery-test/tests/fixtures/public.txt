@@ -1,0 +1,1 @@
+Harmless public fixture text for the local safe-agent harness.

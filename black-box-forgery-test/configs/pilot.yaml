@@ -1,0 +1,14 @@
+schema_version: "1.0"
+name: pilot
+master_seed: 20260903
+seed: 123
+temperature: 0.0
+top_p: 1.0
+thinking_enabled: true
+max_new_tokens: 4096
+max_turns: 8
+max_items: 2
+conditions:
+  - clean_agent
+  - standard_agent
+  - cot_agent

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "black-box-forgery"
+version = "0.1.0"
+description = "Reproducible black-box Role Confusion evaluation scaffold"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=2.8,<3",
+  "PyYAML>=6.0,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<9",
+]
+data = [
+  "datasets>=3.0,<5",
+]
+api = [
+  "openai>=1.50,<2",
+]
+
+[project.scripts]
+bbf = "black_box_forgery.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/black_box_forgery"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100

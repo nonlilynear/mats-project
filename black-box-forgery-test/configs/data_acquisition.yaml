@@ -1,0 +1,22 @@
+schema_version: "1.0"
+wikipedia:
+  dataset_id: wikimedia/wikipedia
+  config: 20231101.en
+  split: train
+  streaming: true
+  shuffle_seed: 1234
+  shuffle_buffer: 1000
+  max_html_bytes: 102400
+  user_agent: black-box-forgery-test/0.1 (research snapshot)
+  allow_network_default: false
+strongreject:
+  dataset_id: walledai/StrongREJECT
+  revision: df54272b395ce9e584d2f8140519935425d8549f
+  revision_required: true
+  gated: true
+  license: MIT
+  redistribution_default: false
+development:
+  harmful_count: 24
+  page_count: 12
+  seed: 20260903

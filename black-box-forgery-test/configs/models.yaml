@@ -1,0 +1,12 @@
+schema_version: "1.0"
+models:
+  - name: base
+    id: Qwen/Qwen3.6-27B
+    revision: 6a9e13bd6fc8f0983b9b99948120bc37f49c13e9
+    tokenizer_revision: 6a9e13bd6fc8f0983b9b99948120bc37f49c13e9
+    thinking: true
+  - name: secopd
+    id: pybbb/Qwen3.6-27B-SecOPD
+    revision: c68d53540e58eac7fde6b9ec18f72db14dbb92af
+    tokenizer_revision: c68d53540e58eac7fde6b9ec18f72db14dbb92af
+    thinking: true

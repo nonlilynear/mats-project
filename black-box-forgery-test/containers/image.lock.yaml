@@ -1,0 +1,15 @@
+schema_version: "1.0"
+image:
+  repository: vllm/vllm-openai
+  compatibility_tag: "v0.20.0"
+  # Required before a pod run. Replace with the digest returned by docker
+  # inspect / the provider's image metadata; do not rely on the tag alone.
+  resolved_digest: "CAPTURE_AT_EXECUTION"
+runner:
+  uv_version: "0.11.19"
+  lockfile: uv.lock
+  python_requires: ">=3.10"
+execution:
+  digest_required: true
+  record_environment: true
+  network_default: false

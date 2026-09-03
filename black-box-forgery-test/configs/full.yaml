@@ -1,0 +1,15 @@
+schema_version: "1.0"
+name: full
+master_seed: 20260903
+seed: 123
+temperature: 0.0
+top_p: 1.0
+thinking_enabled: true
+max_new_tokens: 4096
+max_turns: 8
+conditions:
+  - raw_chat
+  - cot_chat
+  - clean_agent
+  - standard_agent
+  - cot_agent
