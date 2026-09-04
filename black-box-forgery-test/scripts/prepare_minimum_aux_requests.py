@@ -79,6 +79,16 @@ def _target_message(target: str, style_context: str) -> str:
     )
 
 
+def _single_turn_messages(prompt_messages: list[dict[str, str]], target: str, style_context: str) -> list[dict[str, str]]:
+    if len(prompt_messages) != 1 or prompt_messages[0]["role"] != "user":
+        raise ValueError("single-turn mode requires exactly one user message in the forgery prompt")
+    marker = "{{TARGET_BUNDLE}}"
+    template = prompt_messages[0]["content"]
+    if template.count(marker) != 1:
+        raise ValueError(f"single-turn prompt must contain exactly one {marker} marker")
+    return [{"role": "user", "content": template.replace(marker, _target_message(target, style_context))}]
+
+
 def build(args: argparse.Namespace) -> dict[str, Any]:
     development = json.loads(args.development_manifest.read_text(encoding="utf-8"))
     harmful_ids = development.get("harmful_ids")
@@ -123,8 +133,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 "request_id": f"chat__{item_id}",
                 "task": "generate_forgery",
                 "input_text": f"Generate the frozen chat forgery for {item_id}.",
-                "messages": [*prompt_messages, {"role": "user", "content": _target_message(row.prompt, style_context)}],
-                "max_tokens": 2048,
+                "messages": _single_turn_messages(prompt_messages, row.prompt, style_context) if args.single_turn else [*prompt_messages, {"role": "user", "content": _target_message(row.prompt, style_context)}],
+                "max_tokens": args.max_tokens,
                 "metadata": {
                     "block": "chat",
                     "rubric": "chat",
@@ -145,11 +155,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 "request_id": f"agent__{page_id}",
                 "task": "generate_forgery",
                 "input_text": f"Generate the frozen agent forgery for page assignment {page_id}.",
-                "messages": [
-                    *prompt_messages,
-                    {"role": "user", "content": _target_message(assignment.prompt, style_context)},
+                "messages": _single_turn_messages(prompt_messages, assignment.prompt, style_context) if args.single_turn else [
+                    *prompt_messages, {"role": "user", "content": _target_message(assignment.prompt, style_context)}
                 ],
-                "max_tokens": 2048,
+                "max_tokens": args.max_tokens,
                 "metadata": {
                     "block": "agent",
                     "rubric": "agent",
@@ -181,7 +190,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "forgery_prompt_sha256": sha256_path(args.forgery_prompt),
         "injections": str(args.injections),
         "injections_sha256": sha256_path(args.injections),
-        "max_tokens": 2048,
+        "max_tokens": args.max_tokens,
+        "single_turn": bool(args.single_turn),
         "temperature": 0.0,
     }
     manifest_path = args.output.with_suffix(args.output.suffix + ".manifest.json")
@@ -199,6 +209,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--injections", type=Path, required=True)
     result.add_argument("--style-references", type=Path, required=True)
     result.add_argument("--output", type=Path, required=True)
+    result.add_argument("--single-turn", action="store_true")
+    result.add_argument("--max-tokens", type=int, default=2048)
     return result
 
 

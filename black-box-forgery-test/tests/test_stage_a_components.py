@@ -17,6 +17,7 @@ from black_box_forgery.auxiliary import (
     AuxiliaryRequest,
     AuxiliaryResponse,
     OpenRouterBackend,
+    FireworksBackend,
     ScriptedAuxiliaryBackend,
     classify_text,
     run_auxiliary_job,
@@ -284,6 +285,24 @@ def test_auxiliary_cli_uses_frozen_inputs_and_resumes(tmp_path) -> None:
     assert classify_text("The answer is REFUSAL") is None
 
 
+def test_auxiliary_cli_filters_exact_request_ids(tmp_path) -> None:
+    requests = tmp_path / "requests.jsonl"
+    requests.write_text(
+        "\n".join(
+            json.dumps({"request_id": request_id, "task": "generate_forgery", "input_text": request_id})
+            for request_id in ("one", "two", "three")
+        ) + "\n"
+    )
+    summary = tmp_path / "summary.json"
+    results = tmp_path / "results.jsonl"
+    assert cli_main([
+        "auxiliary-smoke", "--requests", str(requests), "--request-id", "three",
+        "--request-id", "one", "--candidate", "glm", "--output", str(summary),
+        "--results", str(results),
+    ]) == 0
+    assert [json.loads(line)["request_id"] for line in results.read_text().splitlines()] == ["three", "one"]
+
+
 def test_openrouter_backend_is_pinned_and_metadata_transport_is_mocked(tmp_path) -> None:
     calls = []
 
@@ -334,6 +353,42 @@ def test_openrouter_backend_is_pinned_and_metadata_transport_is_mocked(tmp_path)
     serialized = (tmp_path / "metadata.json").read_text()
     assert snapshot["api_key_env"] == "TEST_OPENROUTER_KEY"
     assert "do-not-persist" not in serialized
+
+
+def test_fireworks_backend_uses_pinned_model_and_estimates_cost() -> None:
+    calls = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps({
+                "model": "accounts/fireworks/models/glm-5p3-flash",
+                "choices": [{"message": {"content": "<SYNTHETIC_POLICY>test</SYNTHETIC_POLICY>"}}],
+                "usage": {"prompt_tokens": 1000, "completion_tokens": 100},
+            }).encode()
+
+    def transport(request, timeout):
+        calls.append(request)
+        return Response()
+
+    spec = AuxiliaryModelSpec(
+        "z-ai/glm-5.3-flash",
+        resolved_model="accounts/fireworks/models/glm-5p3-flash",
+        input_price_per_million=0.15,
+        output_price_per_million=0.50,
+    )
+    backend = FireworksBackend(spec, api_key="do-not-persist", allow_network=True, urlopen=transport)
+    response = backend.complete(AuxiliaryRequest("g1", "generate_forgery", "target"))
+    body = json.loads(calls[0].data.decode())
+    assert body["model"] == "accounts/fireworks/models/glm-5p3-flash"
+    assert "provider" not in body
+    assert response.provider == "Fireworks"
+    assert response.cost_usd == pytest.approx(0.0002)
 
 
 def test_frozen_auxiliary_request_preserves_multi_message_prompt(tmp_path) -> None:

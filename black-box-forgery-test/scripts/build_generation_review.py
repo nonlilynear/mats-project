@@ -28,14 +28,18 @@ def fence(text: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--requests", type=Path, required=True)
-    parser.add_argument("--results", type=Path, required=True)
+    parser.add_argument("--results", type=Path, action="append", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--only-with-results", action="store_true")
     args = parser.parse_args()
 
     requests = {row["request_id"]: row for row in read_jsonl(args.requests)}
     grouped: dict[str, list[dict]] = defaultdict(list)
-    for row in read_jsonl(args.results):
-        grouped[row["request_id"]].append(row)
+    for path in args.results:
+        for row in read_jsonl(path):
+            grouped[row["request_id"]].append(row)
+    if args.only_with_results:
+        requests = {request_id: row for request_id, row in requests.items() if request_id in grouped}
 
     candidates = sorted({row["candidate"] for rows in grouped.values() for row in rows})
     totals = {

@@ -135,9 +135,11 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--victim-outputs", type=Path, default=None, help="frozen victim outputs JSON/JSONL")
     smoke.add_argument("--max-items", type=int, default=None)
     smoke.add_argument("--max-requests", type=int, default=None, help="hard local cap on request count")
+    smoke.add_argument("--request-id", dest="request_ids", action="append", default=None, help="run only this exact frozen request ID; repeatable")
     smoke.add_argument("--candidate", dest="candidates", action="append", default=None)
     smoke.add_argument("--candidates", dest="candidate_csv", default=None, help="comma-separated glm/muse/gemini candidates")
     smoke.add_argument("--live", action="store_true", help="enable live OpenRouter transport")
+    smoke.add_argument("--transport", choices=("openrouter", "fireworks"), default="openrouter")
     smoke.add_argument("--allow-network", action="store_true", help="required with --live")
     smoke.add_argument("--api-key-env", default="OPENROUTER_API_KEY", help="environment variable name, never the secret")
     smoke.add_argument("--base-url", default="https://openrouter.ai/api/v1")
@@ -900,6 +902,8 @@ def build_agent_request_messages(
 def _auxiliary_smoke(args: argparse.Namespace) -> int:
     from .auxiliary import (
         AuxiliaryError,
+        AuxiliaryModelSpec,
+        FireworksBackend,
         OpenRouterBackend,
         ScriptedAuxiliaryBackend,
         build_smoke_requests,
@@ -910,6 +914,11 @@ def _auxiliary_smoke(args: argparse.Namespace) -> int:
 
     if args.live and not args.allow_network:
         raise ValueError("--live requires --allow-network")
+    if args.transport == "fireworks":
+        if args.api_key_env == "OPENROUTER_API_KEY":
+            args.api_key_env = "FIREWORKS_API_KEY"
+        if args.base_url == "https://openrouter.ai/api/v1":
+            args.base_url = "https://api.fireworks.ai/inference/v1"
     if args.allow_network and not args.live:
         # Keep the default offline even if a copied shell command includes the
         # permission flag; --live is the actual side-effect opt-in.
@@ -918,12 +927,28 @@ def _auxiliary_smoke(args: argparse.Namespace) -> int:
     if args.candidate_csv:
         requested.extend(value.strip() for value in args.candidate_csv.split(",") if value.strip())
     specs = resolve_candidate_specs(requested or None, provider=args.provider)
+    if args.transport == "fireworks":
+        if len(specs) != 1 or specs[0].slug != "z-ai/glm-5.3-flash":
+            raise ValueError("Fireworks transport currently supports only the single GLM 5.3 Flash candidate")
+        specs = [AuxiliaryModelSpec(
+            slug=specs[0].slug,
+            resolved_model="accounts/fireworks/models/glm-5p3-flash",
+            input_price_per_million=0.15,
+            output_price_per_million=0.50,
+        )]
     requests = build_smoke_requests(
         forgeries_path=args.forgeries,
         victim_outputs_path=args.victim_outputs,
         requests_path=args.requests,
         max_items=args.max_items,
     )
+    if args.request_ids:
+        requested_ids = list(dict.fromkeys(args.request_ids))
+        by_id = {request.request_id: request for request in requests}
+        missing = [request_id for request_id in requested_ids if request_id not in by_id]
+        if missing:
+            raise ValueError(f"unknown frozen request IDs: {missing}")
+        requests = [by_id[request_id] for request_id in requested_ids]
     if args.max_requests is not None:
         if args.max_requests <= 0:
             raise ValueError("--max-requests must be positive")
@@ -947,6 +972,8 @@ def _auxiliary_smoke(args: argparse.Namespace) -> int:
     budget = BudgetStop(args.budget_usd, spent=prior_spend) if args.budget_usd is not None else None
     metadata_path: Optional[Path] = None
     if args.metadata_output is not None:
+        if args.transport != "openrouter":
+            raise ValueError("--metadata-output is currently OpenRouter-only")
         if not args.live:
             raise ValueError("--metadata-output requires --live")
         from .auxiliary import snapshot_openrouter_metadata
@@ -963,7 +990,7 @@ def _auxiliary_smoke(args: argparse.Namespace) -> int:
     summaries = []
     for spec in specs:
         backend = (
-            OpenRouterBackend(
+            (FireworksBackend if args.transport == "fireworks" else OpenRouterBackend)(
                 spec,
                 api_key=api_key or "",
                 api_key_env=args.api_key_env,
@@ -988,6 +1015,7 @@ def _auxiliary_smoke(args: argparse.Namespace) -> int:
         "live": bool(args.live),
         "allow_network": bool(args.allow_network),
         "api_key_env": args.api_key_env if args.live else None,
+        "transport": args.transport,
         "provider_pin": args.provider,
         "requests": len(requests),
         "candidates": [spec.slug for spec in specs],

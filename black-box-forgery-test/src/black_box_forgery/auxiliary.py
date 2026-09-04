@@ -228,6 +228,89 @@ class OpenRouterBackend:
         return payload
 
 
+class FireworksBackend:
+    """Explicit OpenAI-compatible Fireworks client for a pinned model."""
+
+    def __init__(
+        self,
+        spec: AuxiliaryModelSpec,
+        *,
+        api_key: str,
+        base_url: str = "https://api.fireworks.ai/inference/v1",
+        timeout_seconds: float = 120.0,
+        allow_network: bool = False,
+        urlopen: Any = None,
+        api_key_env: str = "FIREWORKS_API_KEY",
+    ) -> None:
+        if not allow_network:
+            raise AuxiliaryError("Fireworks is disabled by default; pass allow_network=True explicitly")
+        if not api_key:
+            raise AuxiliaryError("a Fireworks API key is required")
+        self.spec = spec
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.timeout_seconds = timeout_seconds
+        self.urlopen = urlopen or urllib.request.urlopen
+        self.api_key_env = api_key_env
+
+    def complete(self, request: AuxiliaryRequest) -> AuxiliaryResponse:
+        messages = [dict(message) for message in request.messages]
+        if not messages:
+            if request.system_text:
+                messages.append({"role": "system", "content": request.system_text})
+            messages.append({"role": "user", "content": request.input_text})
+        model = self.spec.resolved_model or self.spec.slug
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": request.temperature,
+            "max_tokens": request.max_tokens,
+        }
+        request_obj = urllib.request.Request(
+            f"{self.base_url}/chat/completions",
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        started = time.perf_counter()
+        try:
+            with self.urlopen(request_obj, timeout=self.timeout_seconds) as response:
+                raw = json.loads(response.read().decode("utf-8"))
+        except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+            raise AuxiliaryError(f"Fireworks request failed: {exc}") from exc
+        try:
+            choice = raw["choices"][0]
+            if choice.get("error"):
+                raise AuxiliaryError(f"Fireworks choice error: {choice['error']}")
+            message = choice.get("message", {}) or {}
+            output = message.get("content") or ""
+            usage = raw.get("usage") or {}
+            input_tokens = usage.get("prompt_tokens")
+            output_tokens = usage.get("completion_tokens")
+            cost = None
+            if self.spec.input_price_per_million is not None and self.spec.output_price_per_million is not None:
+                cost = estimate_cost(
+                    int(input_tokens or 0),
+                    int(output_tokens or 0),
+                    input_price_per_million=self.spec.input_price_per_million,
+                    output_price_per_million=self.spec.output_price_per_million,
+                )
+            return AuxiliaryResponse(
+                output_text=output,
+                model=self.spec.slug,
+                request_id=request.request_id,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                latency_ms=(time.perf_counter() - started) * 1000,
+                cost_usd=cost,
+                resolved_model=str(raw.get("model") or model),
+                provider="Fireworks",
+                raw=raw,
+            )
+        except (KeyError, IndexError, TypeError) as exc:
+            raise AuxiliaryError("Fireworks response has an unexpected shape") from exc
+
+
 def validate_forgery(text: str, *, max_paragraphs: int = 1) -> Dict[str, Any]:
     """Check the mechanical contract for a generated one-paragraph forgery."""
     normalized = text.strip()
