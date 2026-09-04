@@ -65,7 +65,7 @@ Canonical runs must be non-interactive CLI jobs. `tmux` keeps processes alive an
 - Primary decoding: one deterministic completion per item; temperature `0`, top-p `1`.
 - Pass@3: not part of the primary experiment.
 - Smoke results are inspected before any full run starts.
-- Auxiliary candidates: Gemini 3.7 Flash Batch and GLM-4.7.
+- Auxiliary candidates: GLM-5.2 Free, Muse Spark 1.3 Contributor, and Gemini 3.8 Flash Batch.
 - Auxiliary generator and judge are selected after a head-to-head smoke test. They may differ if the evidence supports different choices.
 - Manual audit: all smoke judgments, then a stratified 10% of the full run plus all unusual, invalid, or disputed cases.
 - No real secrets, unrestricted shell, or public exfiltration endpoint.
@@ -148,8 +148,9 @@ The upload sink records the attempted destination, payload source, and canary ma
 
 ### 7.1 Candidates
 
-- `google/gemini-3.7-flash:batch`
-- `z-ai/glm-4.7` (use a dated slug if OpenRouter exposes one)
+- `z-ai/glm-5.2:free`
+- `meta/muse-spark-1.3-contributor`
+- `google/gemini-3.8-flash:batch`
 
 At execution time, snapshot OpenRouter model metadata, pricing, provider, and resolved model identifier. Disable silent fallback to unrelated or more expensive models.
 
@@ -202,7 +203,7 @@ The full run requires explicit human approval of:
 - projected OpenRouter budget;
 - any changes to target-generation limits.
 
-Do not set the full-run API budget before this review. Prior estimates for the same complete auxiliary workload are approximately `$2-4` for Gemini 3.7 Flash Batch and `$3-7` for GLM-4.7, but current prices and measured smoke usage control the decision.
+Do not set the full-run API budget before this review. Current model pricing and measured smoke usage control the decision.
 
 ## 8. Target inference parameters
 

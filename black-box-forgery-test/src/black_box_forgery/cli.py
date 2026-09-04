@@ -136,7 +136,7 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--max-items", type=int, default=None)
     smoke.add_argument("--max-requests", type=int, default=None, help="hard local cap on request count")
     smoke.add_argument("--candidate", dest="candidates", action="append", default=None)
-    smoke.add_argument("--candidates", dest="candidate_csv", default=None, help="comma-separated gemini/glm candidates")
+    smoke.add_argument("--candidates", dest="candidate_csv", default=None, help="comma-separated glm/muse/gemini candidates")
     smoke.add_argument("--live", action="store_true", help="enable live OpenRouter transport")
     smoke.add_argument("--allow-network", action="store_true", help="required with --live")
     smoke.add_argument("--api-key-env", default="OPENROUTER_API_KEY", help="environment variable name, never the secret")

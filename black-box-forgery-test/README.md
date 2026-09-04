@@ -56,7 +56,7 @@ name; the secret itself is never a command-line argument or artifact field:
 OPENROUTER_API_KEY=... uv run bbf auxiliary-smoke \
   --live --allow-network --api-key-env OPENROUTER_API_KEY \
   --provider <pinned-provider> --budget-usd 5 --request-cost-cap-usd 0.25 \
-  --candidates gemini,glm --metadata-output runs/auxiliary-models.json
+  --candidates glm,muse,gemini --metadata-output runs/auxiliary-models.json
 ```
 
 Provider fallbacks are disabled in every live request. Before the bakeoff, a

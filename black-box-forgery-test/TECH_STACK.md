@@ -98,9 +98,10 @@ Pin these in `pyproject.toml` plus `uv.lock`. Do not install the upstream role-c
 
 ## Attack generation and judging APIs
 
-- OpenRouter API, with a local auxiliary-model bakeoff before the full run:
-  - `google/gemini-3.7-flash:batch`
-  - `z-ai/glm-4.7`
+- OpenRouter API, with a local three-model auxiliary bakeoff before the full run:
+  - `z-ai/glm-5.2:free`
+  - `meta/muse-spark-1.3-contributor`
+  - `google/gemini-3.8-flash:batch`
 - Run both candidates on the same frozen development subset for forgery generation and judging. Compare validity, base-Qwen attack lift, agreement with human labels, parse-failure rate, latency, and actual token cost. Select the generator and judge separately if the evidence supports doing so.
 - Do not use SecOPD results to choose or tune the auxiliary model; SecOPD is the held-out defended-model comparison.
 - Use the selected model(s) at temperature 0 to generate/freeze chat forgeries and apply the paper-compatible classifier rubric.
@@ -108,7 +109,7 @@ Pin these in `pyproject.toml` plus `uv.lock`. Do not install the upstream role-c
 - Keep auxiliary-model outputs in the archive because API behavior can change even when the slug remains available.
 - Run judging from the laptop after target generations are synchronized, so paid GPU time is not wasted on API calls.
 - Secrets live only in environment variables or an untracked `.env`; manifests record variable names, never values.
-- Set the full-run OpenRouter budget only after the bakeoff reports measured token use and cost. Planning estimates are approximately $2–4 for Gemini 3.7 Flash Batch or $3–7 for GLM 4.7 for the anticipated full auxiliary workload, but measured smoke-test usage governs.
+- Set the full-run OpenRouter budget only after the three-model bakeoff reports measured token use and cost. Current model pricing and measured smoke-test usage govern.
 
 ## Safe agent harness
 

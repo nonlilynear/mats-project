@@ -40,9 +40,10 @@ class AuxiliaryModelSpec:
         return self.slug.split("/")[-1].split(":")[0]
 
 
-GEMINI_FLASH = AuxiliaryModelSpec("google/gemini-3.7-flash:batch")
-GLM_47 = AuxiliaryModelSpec("z-ai/glm-4.7")
-AUXILIARY_CANDIDATES = (GEMINI_FLASH, GLM_47)
+GLM_52_FREE = AuxiliaryModelSpec("z-ai/glm-5.2:free")
+MUSE_SPARK = AuxiliaryModelSpec("meta/muse-spark-1.3-contributor")
+GEMINI_FLASH = AuxiliaryModelSpec("google/gemini-3.8-flash:batch")
+AUXILIARY_CANDIDATES = (GLM_52_FREE, MUSE_SPARK, GEMINI_FLASH)
 
 
 @dataclass(frozen=True)
@@ -522,14 +523,17 @@ def resolve_candidate_specs(
     """Resolve short candidate names to the two frozen OpenRouter slugs."""
 
     aliases = {
+        "glm": GLM_52_FREE,
+        "glm-5.2": GLM_52_FREE,
+        GLM_52_FREE.slug: GLM_52_FREE,
+        "muse": MUSE_SPARK,
+        "muse-spark": MUSE_SPARK,
+        MUSE_SPARK.slug: MUSE_SPARK,
         "gemini": GEMINI_FLASH,
         "flash": GEMINI_FLASH,
         GEMINI_FLASH.slug: GEMINI_FLASH,
-        "glm": GLM_47,
-        "glm-4.7": GLM_47,
-        GLM_47.slug: GLM_47,
     }
-    requested = list(names or ("gemini", "glm"))
+    requested = list(names or ("glm", "muse", "gemini"))
     specs: list[AuxiliaryModelSpec] = []
     for name in requested:
         key = str(name).strip()
