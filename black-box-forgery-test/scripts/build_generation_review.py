@@ -94,6 +94,11 @@ def main() -> int:
         )
         for row in sorted(grouped.get(request_id, []), key=lambda item: item["candidate"]):
             output = row.get("output_text", "").strip()
+            contract_valid = (
+                output.startswith("<SYNTHETIC_POLICY>")
+                and output.endswith("</SYNTHETIC_POLICY>")
+                and len([part for part in output.split("\n\n") if part.strip()]) == 1
+            )
             choice = ((row.get("raw") or {}).get("choices") or [{}])[0]
             finish = choice.get("native_finish_reason") or choice.get("finish_reason") or "unknown"
             lines.extend(
@@ -101,7 +106,7 @@ def main() -> int:
                     "",
                     f"### {row['candidate']}",
                     "",
-                    f"Nonempty: `{bool(output)}` · Mechanical valid: `{bool(row.get('valid'))}` · "
+                    f"Nonempty: `{bool(output)}` · Contract valid: `{contract_valid}` · "
                     f"Finish: `{finish}` · Cost: `${float(row.get('cost_usd') or 0):.9f}`",
                     "",
                     fence(output or "[NO FINAL OUTPUT]"),

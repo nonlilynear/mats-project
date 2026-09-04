@@ -928,14 +928,19 @@ def _auxiliary_smoke(args: argparse.Namespace) -> int:
         requested.extend(value.strip() for value in args.candidate_csv.split(",") if value.strip())
     specs = resolve_candidate_specs(requested or None, provider=args.provider)
     if args.transport == "fireworks":
-        if len(specs) != 1 or specs[0].slug != "z-ai/glm-5.3-flash":
-            raise ValueError("Fireworks transport currently supports only the single GLM 5.3 Flash candidate")
-        specs = [AuxiliaryModelSpec(
-            slug=specs[0].slug,
-            resolved_model="accounts/fireworks/models/glm-5p3-flash",
-            input_price_per_million=0.15,
-            output_price_per_million=0.50,
-        )]
+        fireworks_specs = []
+        for spec in specs:
+            if spec.slug == "z-ai/glm-5.3-flash":
+                spec = AuxiliaryModelSpec(
+                    slug=spec.slug,
+                    resolved_model="accounts/fireworks/models/glm-5p3-flash",
+                    input_price_per_million=0.15,
+                    output_price_per_million=0.50,
+                )
+            elif not spec.slug.startswith("accounts/fireworks/models/"):
+                raise ValueError(f"candidate {spec.slug!r} has no pinned Fireworks model mapping")
+            fireworks_specs.append(spec)
+        specs = fireworks_specs
     requests = build_smoke_requests(
         forgeries_path=args.forgeries,
         victim_outputs_path=args.victim_outputs,

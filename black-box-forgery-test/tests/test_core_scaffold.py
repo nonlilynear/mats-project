@@ -305,8 +305,9 @@ def test_cli_seal_and_verify_detect_corruption(tmp_path: Path):
 
 
 def test_auxiliary_smoke_and_contract():
-    assert validate_forgery("one paragraph")['valid']
-    assert not validate_forgery("first\n\nsecond")['valid']
+    assert validate_forgery("<SYNTHETIC_POLICY>one paragraph</SYNTHETIC_POLICY>")['valid']
+    assert not validate_forgery("<SYNTHETIC_POLICY>first\n\nsecond</SYNTHETIC_POLICY>")['valid']
+    assert not validate_forgery("<SYNTHETIC_POLICY>truncated")['valid']
     requests = [
         AuxiliaryRequest("forge-1", "generate_forgery", "prompt"),
         AuxiliaryRequest("judge-1", "judge", "answer"),

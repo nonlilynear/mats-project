@@ -21,6 +21,7 @@ from black_box_forgery.auxiliary import (
     ScriptedAuxiliaryBackend,
     classify_text,
     run_auxiliary_job,
+    resolve_candidate_specs,
     snapshot_openrouter_metadata,
 )
 from black_box_forgery.archive import create_manifest, verify_archive, write_manifest
@@ -389,6 +390,18 @@ def test_fireworks_backend_uses_pinned_model_and_estimates_cost() -> None:
     assert "provider" not in body
     assert response.provider == "Fireworks"
     assert response.cost_usd == pytest.approx(0.0002)
+
+
+def test_fireworks_candidate_aliases_are_pinned_and_priced() -> None:
+    specs = resolve_candidate_specs(["nemotron", "deepseek-v4-flash"])
+    assert [spec.resolved_model for spec in specs] == [
+        "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b",
+        "accounts/fireworks/models/deepseek-v4-flash-0731",
+    ]
+    assert [(spec.input_price_per_million, spec.output_price_per_million) for spec in specs] == [
+        (0.05, 0.20),
+        (0.22, 0.66),
+    ]
 
 
 def test_frozen_auxiliary_request_preserves_multi_message_prompt(tmp_path) -> None:
