@@ -189,6 +189,42 @@ def test_make_request_escapes_messages_at_backend_boundary():
     assert "<|im_end|>" not in request.messages[1].content
 
 
+def test_openai_compatible_backend_accepts_vllm_reasoning_field(monkeypatch):
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "model": "served/model",
+                    "choices": [
+                        {
+                            "message": {"content": "answer", "reasoning": "trace"},
+                            "finish_reason": "stop",
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 5, "completion_tokens": 3},
+                }
+            ).encode()
+
+    monkeypatch.setattr(
+        "black_box_forgery.inference.urllib.request.urlopen",
+        lambda request, timeout: Response(),
+    )
+    backend = OpenAICompatibleBackend(
+        base_url="http://localhost:18000",
+        model="served/model",
+        allow_network=True,
+    )
+    response = backend.complete(_request())
+    assert response.thinking_text == "trace"
+    assert response.output_text == "answer"
+
+
 def test_storage_is_idempotent_and_attempts_are_preserved(tmp_path: Path):
     run_dir = tmp_path / "run-1"
     store = RunArtifactStore(run_dir)

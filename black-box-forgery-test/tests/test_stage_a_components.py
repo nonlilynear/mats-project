@@ -336,6 +336,36 @@ def test_openrouter_backend_is_pinned_and_metadata_transport_is_mocked(tmp_path)
     assert "do-not-persist" not in serialized
 
 
+def test_frozen_auxiliary_request_preserves_multi_message_prompt(tmp_path) -> None:
+    request_path = tmp_path / "requests.jsonl"
+    request_path.write_text(
+        json.dumps(
+            {
+                "request_id": "forge-1",
+                "task": "generate_forgery",
+                "input_text": "review label",
+                "messages": [
+                    {"role": "system", "content": "system prompt"},
+                    {"role": "user", "content": "target prompt"},
+                ],
+                "metadata": {"block": "chat"},
+                "max_tokens": 512,
+            }
+        )
+        + "\n"
+    )
+    from black_box_forgery.auxiliary import build_smoke_requests
+
+    [request] = build_smoke_requests(requests_path=request_path)
+    assert list(request.messages) == [
+        {"role": "system", "content": "system prompt"},
+        {"role": "user", "content": "target prompt"},
+    ]
+    assert request.input_text == "review label"
+    assert request.metadata["block"] == "chat"
+    assert request.max_tokens == 512
+
+
 def test_auxiliary_job_hard_budget_stops_before_next_request(tmp_path) -> None:
     class ChargedBackend:
         model = "charged"

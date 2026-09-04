@@ -173,7 +173,8 @@ def _extract_message(response: Any) -> Mapping[str, Any] | str:
         if message is not None:
             return {
                 "content": getattr(message, "content", ""),
-                "reasoning": getattr(message, "reasoning_content", None),
+                "reasoning": getattr(message, "reasoning_content", None)
+                or getattr(message, "reasoning", None),
                 "tool_calls": getattr(message, "tool_calls", None),
                 "stop_reason": getattr(choice, "finish_reason", "stop"),
             }

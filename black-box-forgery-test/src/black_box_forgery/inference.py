@@ -160,7 +160,7 @@ class OpenAICompatibleBackend:
             choice = data["choices"][0]
             message = choice.get("message", {})
             output = message.get("content") or ""
-            reasoning = message.get("reasoning_content")
+            reasoning = message.get("reasoning_content") or message.get("reasoning")
             usage = data.get("usage") or {}
             finish = choice.get("finish_reason") or "stop"
             status = RecordStatus.TRUNCATED if finish == "length" else RecordStatus.COMPLETE

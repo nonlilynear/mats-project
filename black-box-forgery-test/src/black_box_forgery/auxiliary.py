@@ -52,13 +52,23 @@ class AuxiliaryRequest:
     task: str
     input_text: str
     system_text: Optional[str] = None
+    messages: Sequence[Mapping[str, str]] = field(default_factory=tuple)
     temperature: float = 0.0
     max_tokens: int = 4096
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     @property
     def input_hash(self) -> str:
-        return sha256_text(canonical_json({"task": self.task, "input": self.input_text}))
+        return sha256_text(
+            canonical_json(
+                {
+                    "task": self.task,
+                    "input": self.input_text,
+                    "system": self.system_text,
+                    "messages": [dict(message) for message in self.messages],
+                }
+            )
+        )
 
 
 @dataclass
@@ -142,10 +152,11 @@ class OpenRouterBackend:
         return routing
 
     def complete(self, request: AuxiliaryRequest) -> AuxiliaryResponse:
-        messages = []
-        if request.system_text:
-            messages.append({"role": "system", "content": request.system_text})
-        messages.append({"role": "user", "content": request.input_text})
+        messages = [dict(message) for message in request.messages]
+        if not messages:
+            if request.system_text:
+                messages.append({"role": "system", "content": request.system_text})
+            messages.append({"role": "user", "content": request.input_text})
         payload = {
             "model": self.spec.slug,
             "messages": messages,
@@ -569,13 +580,39 @@ def _request_from_frozen_row(row: Mapping[str, Any], index: int, *, task: str) -
     else:
         condition = str(row.get("condition", ""))
         rubric = str(row.get("rubric") or ("chat" if "chat" in condition else "agent"))
+    raw_messages = row.get("messages")
+    messages: list[dict[str, str]] = []
+    if raw_messages is not None:
+        if not isinstance(raw_messages, list) or not raw_messages:
+            raise AuxiliaryError(f"messages for {request_id} must be a nonempty list")
+        for message_index, message in enumerate(raw_messages):
+            if not isinstance(message, Mapping):
+                raise AuxiliaryError(f"message {message_index} for {request_id} must be an object")
+            role = message.get("role")
+            content = message.get("content")
+            if role not in {"system", "user", "assistant"} or not isinstance(content, str):
+                raise AuxiliaryError(
+                    f"message {message_index} for {request_id} requires a supported role and text content"
+                )
+            messages.append({"role": str(role), "content": content})
+    input_text = row.get("input_text")
+    if not isinstance(input_text, str):
+        input_text = canonical_json(dict(row))
+    system_text = row.get("system_text")
+    if system_text is not None and not isinstance(system_text, str):
+        raise AuxiliaryError(f"system_text for {request_id} must be text")
+    row_metadata = row.get("metadata")
+    metadata = dict(row_metadata) if isinstance(row_metadata, Mapping) else {}
+    metadata.update({"rubric": rubric, "source_frozen": True, "source_id": request_id})
     return AuxiliaryRequest(
         request_id=request_id,
         task=task,
-        input_text=canonical_json(dict(row)),
+        input_text=input_text,
+        system_text=system_text,
+        messages=tuple(messages),
         temperature=0.0,
         max_tokens=int(row.get("max_tokens", 4096)),
-        metadata={"rubric": rubric, "source_frozen": True, "source_id": request_id},
+        metadata=metadata,
     )
 
 
