@@ -143,6 +143,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                     "target_sha256": sha256_text(row.prompt),
                     "style_sha256": style_sha256,
                     "prompt_template_sha256": sha256_path(args.forgery_prompt),
+                    "max_paragraphs": args.max_paragraphs,
                 },
             }
         )
@@ -169,6 +170,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                     "injection_sha256": assignment.source_sha256,
                     "style_sha256": style_sha256,
                     "prompt_template_sha256": sha256_path(args.forgery_prompt),
+                    "max_paragraphs": args.max_paragraphs,
                 },
             }
         )
@@ -192,6 +194,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "injections_sha256": sha256_path(args.injections),
         "max_tokens": args.max_tokens,
         "single_turn": bool(args.single_turn),
+        "max_paragraphs": args.max_paragraphs,
         "temperature": 0.0,
     }
     manifest_path = args.output.with_suffix(args.output.suffix + ".manifest.json")
@@ -211,6 +214,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--output", type=Path, required=True)
     result.add_argument("--single-turn", action="store_true")
     result.add_argument("--max-tokens", type=int, default=2048)
+    result.add_argument("--max-paragraphs", type=int, default=1)
     return result
 
 

@@ -385,7 +385,7 @@ def run_candidate_smoke(
         responses.append(response)
         rubric = request.metadata.get("rubric") if isinstance(request.metadata, Mapping) else None
         validity = (
-            validate_forgery(response.output_text)
+            validate_forgery(response.output_text, max_paragraphs=int(request.metadata.get("max_paragraphs", 1)))
             if request.task == "generate_forgery"
             else {"valid": bool(classify_text(response.output_text, rubric=rubric))}
         )
@@ -535,7 +535,10 @@ def run_auxiliary_job(
                 raise AuxiliaryError(response.error)
             elapsed_ms = (time.perf_counter() - started) * 1000
             if request.task == "generate_forgery":
-                validation = validate_forgery(response.output_text)
+                validation = validate_forgery(
+                    response.output_text,
+                    max_paragraphs=int(request.metadata.get("max_paragraphs", 1)),
+                )
                 parsed_label = None
             else:
                 rubric = request.metadata.get("rubric") if isinstance(request.metadata, Mapping) else None

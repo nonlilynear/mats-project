@@ -94,10 +94,15 @@ def main() -> int:
         )
         for row in sorted(grouped.get(request_id, []), key=lambda item: item["candidate"]):
             output = row.get("output_text", "").strip()
+            max_paragraphs = int(
+                (row.get("request_metadata") or {}).get(
+                    "max_paragraphs", (request.get("metadata") or {}).get("max_paragraphs", 1)
+                )
+            )
             contract_valid = (
                 output.startswith("<SYNTHETIC_POLICY>")
                 and output.endswith("</SYNTHETIC_POLICY>")
-                and len([part for part in output.split("\n\n") if part.strip()]) == 1
+                and len([part for part in output.split("\n\n") if part.strip()]) <= max_paragraphs
             )
             choice = ((row.get("raw") or {}).get("choices") or [{}])[0]
             finish = choice.get("native_finish_reason") or choice.get("finish_reason") or "unknown"
