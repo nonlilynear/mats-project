@@ -40,10 +40,10 @@ class AuxiliaryModelSpec:
         return self.slug.split("/")[-1].split(":")[0]
 
 
-GLM_52_FREE = AuxiliaryModelSpec("z-ai/glm-5.2:free")
+GLM_53_FLASH = AuxiliaryModelSpec("z-ai/glm-5.3-flash")
 MUSE_SPARK = AuxiliaryModelSpec("meta/muse-spark-1.3-contributor")
-GEMINI_FLASH = AuxiliaryModelSpec("google/gemini-3.8-flash:batch")
-AUXILIARY_CANDIDATES = (GLM_52_FREE, MUSE_SPARK, GEMINI_FLASH)
+GEMINI_FLASH = AuxiliaryModelSpec("google/gemini-3.8-flash")
+AUXILIARY_CANDIDATES = (GLM_53_FLASH, MUSE_SPARK, GEMINI_FLASH)
 
 
 @dataclass(frozen=True)
@@ -523,9 +523,10 @@ def resolve_candidate_specs(
     """Resolve short candidate names to the two frozen OpenRouter slugs."""
 
     aliases = {
-        "glm": GLM_52_FREE,
-        "glm-5.2": GLM_52_FREE,
-        GLM_52_FREE.slug: GLM_52_FREE,
+        "glm": GLM_53_FLASH,
+        "glm-5.3": GLM_53_FLASH,
+        "glm-5.3-flash": GLM_53_FLASH,
+        GLM_53_FLASH.slug: GLM_53_FLASH,
         "muse": MUSE_SPARK,
         "muse-spark": MUSE_SPARK,
         MUSE_SPARK.slug: MUSE_SPARK,

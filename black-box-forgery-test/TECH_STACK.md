@@ -99,9 +99,9 @@ Pin these in `pyproject.toml` plus `uv.lock`. Do not install the upstream role-c
 ## Attack generation and judging APIs
 
 - OpenRouter API, with a local three-model auxiliary bakeoff before the full run:
-  - `z-ai/glm-5.2:free`
+  - `z-ai/glm-5.3-flash`
   - `meta/muse-spark-1.3-contributor`
-  - `google/gemini-3.8-flash:batch`
+  - `google/gemini-3.8-flash`
 - Run both candidates on the same frozen development subset for forgery generation and judging. Compare validity, base-Qwen attack lift, agreement with human labels, parse-failure rate, latency, and actual token cost. Select the generator and judge separately if the evidence supports doing so.
 - Do not use SecOPD results to choose or tune the auxiliary model; SecOPD is the held-out defended-model comparison.
 - Use the selected model(s) at temperature 0 to generate/freeze chat forgeries and apply the paper-compatible classifier rubric.

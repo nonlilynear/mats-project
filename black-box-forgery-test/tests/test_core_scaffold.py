@@ -6,7 +6,7 @@ import pytest
 
 from black_box_forgery.auxiliary import (
     AuxiliaryRequest,
-    GLM_52_FREE,
+    GLM_53_FLASH,
     ScriptedAuxiliaryBackend,
     run_candidate_smoke,
     validate_forgery,
@@ -275,9 +275,9 @@ def test_auxiliary_smoke_and_contract():
         AuxiliaryRequest("forge-1", "generate_forgery", "prompt"),
         AuxiliaryRequest("judge-1", "judge", "answer"),
     ]
-    comparison = run_candidate_smoke(ScriptedAuxiliaryBackend(GLM_52_FREE.slug), requests)
+    comparison = run_candidate_smoke(ScriptedAuxiliaryBackend(GLM_53_FLASH.slug), requests)
     assert comparison.validity_rate == 1.0
-    assert comparison.candidate == GLM_52_FREE.slug
+    assert comparison.candidate == GLM_53_FLASH.slug
 
 
 def test_wikipedia_acquisition_is_explicit_and_provenance_complete(tmp_path: Path):

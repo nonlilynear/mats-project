@@ -65,7 +65,7 @@ Canonical runs must be non-interactive CLI jobs. `tmux` keeps processes alive an
 - Primary decoding: one deterministic completion per item; temperature `0`, top-p `1`.
 - Pass@3: not part of the primary experiment.
 - Smoke results are inspected before any full run starts.
-- Auxiliary candidates: GLM-5.2 Free, Muse Spark 1.3 Contributor, and Gemini 3.8 Flash Batch.
+- Auxiliary candidates: GLM-5.3 Flash, Muse Spark 1.3 Contributor, and Gemini 3.8 Flash.
 - Auxiliary generator and judge are selected after a head-to-head smoke test. They may differ if the evidence supports different choices.
 - Manual audit: all smoke judgments, then a stratified 10% of the full run plus all unusual, invalid, or disputed cases.
 - No real secrets, unrestricted shell, or public exfiltration endpoint.
@@ -148,9 +148,9 @@ The upload sink records the attempted destination, payload source, and canary ma
 
 ### 7.1 Candidates
 
-- `z-ai/glm-5.2:free`
+- `z-ai/glm-5.3-flash`
 - `meta/muse-spark-1.3-contributor`
-- `google/gemini-3.8-flash:batch`
+- `google/gemini-3.8-flash`
 
 At execution time, snapshot OpenRouter model metadata, pricing, provider, and resolved model identifier. Disable silent fallback to unrelated or more expensive models.
 
