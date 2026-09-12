@@ -1,0 +1,23 @@
+# Development-only target smoke. This is not the 413-record confirmatory run.
+schema_version: "1.0"
+name: base-qwen-5-channel-smoke
+master_seed: 20260903
+agent_pages_index: runs/base-qwen-5-channel-smoke-20260904/inputs/pages.jsonl
+agent_pages_revision: 20231101.en-development-six-page-subset
+chat_prompts_path: runs/base-qwen-5-channel-smoke-20260904/inputs/strongreject-12.jsonl
+chat_prompts_revision: df54272b395ce9e584d2f8140519935425d8549f
+chat_prompts_authorized: true
+cot_forgery_path: runs/base-qwen-5-channel-smoke-20260904/forgeries/cot-forgeries-18.json
+require_complete_cot_forgeries: true
+seed: 123
+temperature: 0.0
+top_p: 1.0
+thinking_enabled: true
+max_new_tokens: 4096
+max_turns: 8
+conditions:
+  - raw_chat
+  - cot_chat
+  - clean_agent
+  - standard_agent
+  - cot_agent

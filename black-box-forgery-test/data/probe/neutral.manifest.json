@@ -1,0 +1,23 @@
+{
+  "format": "neutral_probe_texts_v1",
+  "num_texts": 250,
+  "seed": 123,
+  "sampling": "streamed shuffled validation/train rows, exact-text deduplication",
+  "allocations": {
+    "c4": 125,
+    "dolma3": 125
+  },
+  "datasets": {
+    "c4": {
+      "id": "allenai/c4",
+      "config": "en",
+      "split": "validation"
+    },
+    "dolma3": {
+      "id": "allenai/dolma3_mix-150B-1025",
+      "split": "train",
+      "revision": "3a8349c"
+    }
+  },
+  "jsonl_sha256": "ef4e36aae7191c66350ab0b28e38b1b523b839d7d9d2a6b53ed4e2db46e163a6"
+}

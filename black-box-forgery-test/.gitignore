@@ -22,16 +22,11 @@ checkpoints/
 *.bin
 *.pt
 *.pth
+*.pkl
 
-# Generated experiment artifacts (keep manifests/configuration in Git)
-runs/*/generations*
-runs/*/agent_events*
-runs/*/requests*
-runs/*/auxiliary_requests*
-runs/*/judgments*
-runs/*/logs/
-runs/*/review/
-runs/*/plots/
+# Generated experiment artifacts (publish reviewed exports separately)
+runs/
+data/probe/*.jsonl
 data/source/*
 data/frozen/*
 data/manifests/*.local.json

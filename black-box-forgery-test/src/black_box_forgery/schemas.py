@@ -252,6 +252,7 @@ class RunManifest(BBFModel):
     decoding: DecodingParams = Field(default_factory=DecodingParams)
     environment: Dict[str, Any] = Field(default_factory=dict)
     counts: Dict[str, int] = Field(default_factory=dict)
+    agent_task_suffix: Optional[str] = None
     notes: List[str] = Field(default_factory=list)
 
 

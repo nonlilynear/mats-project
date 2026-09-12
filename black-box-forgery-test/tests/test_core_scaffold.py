@@ -170,6 +170,57 @@ def test_openai_compatible_backends_are_explicit_and_send_thinking_settings(monk
     assert request_body["chat_template_kwargs"] == {"enable_thinking": True}
     assert request_body["max_tokens"] == 99
 
+    agent.complete(
+        messages=[
+            {"role": "user", "content": "task"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call-1",
+                        "name": "noop",
+                        "arguments": {"value": "x"},
+                    }
+                ],
+            },
+            {
+                "role": "tool",
+                "tool_call_id": "call-1",
+                "name": "noop",
+                "content": "done",
+            },
+        ],
+        tools=[{"type": "function", "function": {"name": "noop"}}],
+        max_new_tokens=99,
+        rendered_prompt="unused local rendering",
+    )
+    tool_request_body = json.loads(calls[1][0].data.decode())
+    assert tool_request_body["messages"][0] == {"role": "user", "content": "task"}
+    assert tool_request_body["messages"][1]["tool_calls"] == [
+        {
+            "id": "call-1",
+            "type": "function",
+            "function": {"name": "noop", "arguments": '{"value":"x"}'},
+        }
+    ]
+    assert tool_request_body["messages"][2] == {
+        "role": "tool",
+        "tool_call_id": "call-1",
+        "content": "done",
+    }
+
+    backend = OpenAICompatibleBackend(
+        base_url="http://localhost:18000/",
+        model="m",
+        allow_network=True,
+    )
+    backend.complete(_request())
+    direct_request_body = json.loads(calls[2][0].data.decode())
+    assert direct_request_body["messages"] == [
+        {"role": "user", "content": "A frozen test prompt."}
+    ]
+
 
 def test_make_request_escapes_messages_at_backend_boundary():
     request = make_request(

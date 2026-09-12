@@ -1,6 +1,14 @@
 schema_version: "1.0"
 name: full
 master_seed: 20260903
+agent_pages_index: data/source/wikipedia-20231101-en/pages.jsonl
+agent_pages_revision: index-sha256:40d95af094d0c097ae11f7d32e7d6e229be15c6bc45cdb821c8bba1e974b0c76
+chat_prompts_path: data/source/strongreject/strongreject.jsonl
+chat_prompts_revision: df54272b395ce9e584d2f8140519935425d8549f
+chat_prompts_authorized: true
+cot_forgery_path: data/source/forgeries/deepseek-v4-flash-0731.jsonl
+require_complete_cot_forgeries: true
+require_endpoint_attestation: true
 seed: 123
 temperature: 0.0
 top_p: 1.0

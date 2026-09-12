@@ -494,6 +494,7 @@ def run_auxiliary_job(
     output_path: Optional[str | Path] = None,
     budget_stop: Optional[BudgetStop] = None,
     request_cost_cap: Optional[float] = None,
+    retry_invalid: bool = False,
 ) -> dict[str, Any]:
     """Run resumably and append one immutable result record per attempt.
 
@@ -510,7 +511,11 @@ def run_auxiliary_job(
         prior = sum(float(row.get("budget_charge_usd", row.get("cost_usd", 0.0)) or 0.0) for row in history)
         if prior:
             budget_stop.record(prior)
-    completed = {row.get("request_key") for row in history if row.get("status") == "complete"}
+    completed = {
+        row.get("request_key")
+        for row in history
+        if row.get("status") == "complete" and (not retry_invalid or bool(row.get("valid")))
+    }
     completed_now = 0
     skipped = 0
     errors = 0
@@ -633,7 +638,7 @@ def resolve_candidate_specs(
     *,
     provider: Optional[str] = None,
 ) -> list[AuxiliaryModelSpec]:
-    """Resolve short candidate names to the two frozen OpenRouter slugs."""
+    """Resolve aliases or fully qualified Fireworks model IDs to specs."""
 
     aliases = {
         "glm": GLM_53_FLASH,
@@ -657,6 +662,15 @@ def resolve_candidate_specs(
     specs: list[AuxiliaryModelSpec] = []
     for name in requested:
         key = str(name).strip()
+        if key not in aliases and key.startswith("accounts/fireworks/models/") and key.removeprefix("accounts/fireworks/models/"):
+            specs.append(
+                AuxiliaryModelSpec(
+                    slug=key,
+                    provider=provider,
+                    resolved_model=key,
+                )
+            )
+            continue
         if key not in aliases:
             raise AuxiliaryError(f"unknown auxiliary candidate {name!r}")
         spec = aliases[key]
@@ -683,8 +697,11 @@ def _request_from_frozen_row(row: Mapping[str, Any], index: int, *, task: str) -
         or row.get("sample_id")
         or f"{task}-{index:04d}"
     )
+    row_metadata = row.get("metadata")
+    metadata = dict(row_metadata) if isinstance(row_metadata, Mapping) else {}
     if task == "generate_forgery":
-        rubric = "chat" if str(row.get("block", "chat")).lower() == "chat" else str(row.get("rubric", "chat"))
+        block = str(row.get("block", metadata.get("block", "chat"))).lower()
+        rubric = "chat" if block == "chat" else str(row.get("rubric", metadata.get("rubric", "agent")))
     else:
         condition = str(row.get("condition", ""))
         rubric = str(row.get("rubric") or ("chat" if "chat" in condition else "agent"))
@@ -709,8 +726,6 @@ def _request_from_frozen_row(row: Mapping[str, Any], index: int, *, task: str) -
     system_text = row.get("system_text")
     if system_text is not None and not isinstance(system_text, str):
         raise AuxiliaryError(f"system_text for {request_id} must be text")
-    row_metadata = row.get("metadata")
-    metadata = dict(row_metadata) if isinstance(row_metadata, Mapping) else {}
     metadata.update({"rubric": rubric, "source_frozen": True, "source_id": request_id})
     return AuxiliaryRequest(
         request_id=request_id,

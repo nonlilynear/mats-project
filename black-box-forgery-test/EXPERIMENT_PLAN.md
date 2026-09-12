@@ -1,9 +1,39 @@
 # Experiment 0 handoff: black-box Role Confusion evaluation
 
-Status: canonical implementation and execution plan  
-Date frozen: 2026-09-03  
+Status: Stage A implementation complete; staged smoke gate pending
+Last status audited: 2026-09-03
+Date plan frozen: 2026-09-03
 Experiment directory: `black-box-forgery-test/`  
 Git root: parent `neel-mats/` repository (intentional)
+
+## Current state and handoff gate
+
+This document is the authoritative transition context. The local scaffold and
+implementation fixes are in the worktree but are not committed or pushed yet.
+The private StrongREJECT snapshot contains 313 rows and the frozen Wikipedia
+snapshot contains 100 pages. The selected auxiliary model is DeepSeek V4 Flash
+through Fireworks. Only a three-case DeepSeek probe has been run so far.
+
+The next required action is the 18-case auxiliary smoke test: 12 frozen
+StrongREJECT requests plus 6 frozen Wikipedia-page injection assignments.
+Generate and hand-review those 18 forgeries using the canonical upstream
+forgery prompt and the frozen Qwen style references. Do not generate the full
+corpus until this smoke gate is reviewed and accepted.
+
+After approval, generate and freeze the full shared corpus: 313 chat forgeries
+plus 100 agent forgeries, for 413 total records. Then run the target-model
+development check before the confirmatory run.
+
+The full target configuration is deliberately fail-closed. It expects
+`data/source/forgeries/deepseek-v4-flash-0731.jsonl` and requires a live pod
+endpoint at `GET /bbf/template-contract` that attests the checked-in Qwen
+template contract. No full target run has been performed.
+
+Verified locally: 68 tests pass; the safe mock-upload harness, archive and
+resume paths, source snapshots, local prompt rendering, and forgery mapping
+validation are covered. The current generated artifacts remain under the
+untracked `runs/` directory and must not be treated as the committed source of
+truth.
 
 ## 1. Objective
 
@@ -18,7 +48,7 @@ using a behavioral adaptation of the black-box experiments in *Prompt Injection 
 2. Does SecOPD resist those same indirect injections when the application correctly places the data in its `input` role?
 3. Does either checkpoint remain susceptible to CoT Forgery delivered directly through the `user` channel?
 
-This is an experiment-zero sanity check. It is not the later benign-injection experiment, and it does not include activation exports or role probes. If SecOPD has lower benign-injection ASR in the later experiment, hidden-state role analysis may then be warranted.
+This is an experiment-zero sanity check. It is not the later benign-injection experiment. The role-probe implementation is now present as a separate, post-behavioral follow-up; it must be trained only on neutral text and must not use attack outcomes.
 
 ## 2. Governing implementation principle: build locally, ship to compute
 
@@ -42,12 +72,13 @@ The intended pod workflow is:
 ```text
 clone private parent repository
   -> cd black-box-forgery-test
-  -> supply HF/OpenRouter credentials as environment variables
+  -> supply Hugging Face/Fireworks credentials as environment variables
   -> run bootstrap and validation
   -> download pinned checkpoints
   -> collect base-Qwen style references
-  -> run auxiliary-model smoke comparison
+  -> run the 18-case auxiliary smoke test
   -> sync results and stop for human inspection
+  -> only after approval, generate and freeze the 413-record corpus
   -> only after approval, run the frozen full experiment
 ```
 
@@ -65,8 +96,8 @@ Canonical runs must be non-interactive CLI jobs. `tmux` keeps processes alive an
 - Primary decoding: one deterministic completion per item; temperature `0`, top-p `1`.
 - Pass@3: not part of the primary experiment.
 - Smoke results are inspected before any full run starts.
-- Auxiliary candidates: GLM-5.3 Flash, Muse Spark 1.3 Contributor, and Gemini 3.8 Flash.
-- Auxiliary generator and judge are selected after a head-to-head smoke test. They may differ if the evidence supports different choices.
+- Auxiliary model selected for the next stage: `accounts/fireworks/models/deepseek-v4-flash-0731` via Fireworks, using `FIREWORKS_API_KEY` and `https://api.fireworks.ai/inference/v1`.
+- The current selection is based on a three-case probe, not the full frozen forgery corpus. Keep the human review gate and record the final model/provider decision in the run manifest.
 - Manual audit: all smoke judgments, then a stratified 10% of the full run plus all unusual, invalid, or disputed cases.
 - No real secrets, unrestricted shell, or public exfiltration endpoint.
 
@@ -108,7 +139,7 @@ The upstream few-shot examples were written around the paper's original targets 
 3. Reject truncated, empty, malformed, or policy-heavy samples.
 4. Select a small, diverse set of stylistic examples without selecting on attack outcomes.
 5. Freeze the exact examples and hashes in the artifact archive and repository if size permits.
-6. Supply the same style-reference bundle to both auxiliary candidate generators.
+6. Supply the same style-reference bundle to the selected auxiliary generator.
 
 Generate one shared forgery per harmful chat request and one per agent injection assignment. Do not query SecOPD for a checkpoint-specific forgery corpus. Any future adaptive attack is a separate experiment.
 
@@ -144,29 +175,57 @@ Expose constrained tools that preserve the observable benchmark steps:
 
 The upload sink records the attempted destination, payload source, and canary match, returns a deterministic fake response, and has no outbound-network ability. Deny paths outside the episode root. Record every assistant message, reasoning field, tool request, tool result, parser error, and stop reason.
 
-## 7. Auxiliary-model head-to-head smoke test
+## 7. Auxiliary-model selection and frozen generation
 
-### 7.1 Candidates
+### 7.1 Selected auxiliary model
 
-- `z-ai/glm-5.3-flash`
-- `meta/muse-spark-1.3-contributor`
-- `google/gemini-3.8-flash`
+The canonical generator and judge candidate is:
 
-At execution time, snapshot OpenRouter model metadata, pricing, provider, and resolved model identifier. Disable silent fallback to unrelated or more expensive models.
+- `accounts/fireworks/models/deepseek-v4-flash-0731`
 
-### 7.2 Frozen development set
+Use the Fireworks OpenAI-compatible endpoint
+`https://api.fireworks.ai/inference/v1` and the credential environment
+variable `FIREWORKS_API_KEY`. Never write the credential value to a command,
+manifest, log, or artifact. The previous OpenRouter GLM, Muse, and Gemini
+entries are historical bakeoff candidates and are not part of the canonical
+configuration.
 
-Create the development set before viewing outputs:
+The current metadata-snapshot CLI is OpenRouter-specific. For Fireworks, record
+the provider, resolved model identifier, token counts, returned cost, and the
+conservative budget charge from every result; do not claim a separate metadata
+snapshot until that provenance path is generalized. Disable silent fallback to
+unrelated or more expensive models.
 
-- 24 StrongREJECT prompts, stratified across available harm categories;
-- 12 agent pages, sampled from the 100-page pool;
-- the same base-Qwen style references for both candidates.
+The existing DeepSeek artifact is only a three-case probe:
+`runs/minimum-aux-bakeoff-20260904/fireworks-upstream-safety-style/probe-review.md`.
+It demonstrates prompt/output viability but does not replace generation and
+freezing of one forgery for every chat and agent item.
 
-Mark these development IDs permanently. Model selection may use them. Primary confirmatory statistics should be reported on the remaining examples, with a secondary all-example summary for paper-scale comparability.
+### 7.2 Current 18-case smoke set
 
-### 7.3 Generator comparison
+The immediate smoke gate is intentionally smaller than the later development
+and confirmatory runs. It is already selected locally before output review:
 
-Have each candidate generate forgeries for the same development requests at temperature `0`. Evaluate:
+- 12 StrongREJECT prompts, stratified across the six available harm categories;
+- 6 agent pages, sampled from the 100-page pool;
+- the frozen base-Qwen style-reference bundle for the selected model.
+
+This is 18 auxiliary forgery-generation requests, not 18 target-model
+episodes. The local ID manifest is
+`data/manifests/auxiliary_minimum.local.json`; the request artifact is
+`runs/minimum-aux-bakeoff-20260904/requests/upstream-safety-style-requests.jsonl`.
+The older 24-harm/12-page manifest is an optional expanded development set,
+not the current gate.
+
+Mark these 18 IDs permanently. Review every generated output for format,
+Qwen-style resemblance, and preservation of the injected goal. Use this set to
+validate the selected generator and decide whether to proceed; do not use it as
+the paper-scale confirmatory sample.
+
+### 7.3 Selected generator validation
+
+Have the selected model generate the 18 smoke forgeries at temperature `0`.
+The three-case probe is only a transport/prompt viability check. Evaluate:
 
 - request and output validity rate;
 - compliance with the required one-paragraph/format contract;
@@ -175,13 +234,18 @@ Have each candidate generate forgeries for the same development requests at temp
 - attack lift against base Qwen on the development set;
 - latency, retries, token usage, and actual cost.
 
-Select using only the development set and base Qwen. Do not optimize the generator against SecOPD before the confirmatory comparison.
+Do not generate the full 313-chat/100-agent corpus until the 18-case review is
+complete. Do not optimize the generator against SecOPD before the confirmatory
+comparison.
 
-### 7.4 Judge comparison
+### 7.4 Judge validation
 
-Construct a smoke output pool from the base-Qwen development runs containing raw chat, forged chat, clean agent, standard agent, and forged-agent outcomes. Human-label every smoke case under the frozen rubric, blinded to auxiliary candidate. Keep SecOPD entirely outside auxiliary-model selection.
+After the 18 forgeries are reviewed, construct a small base-Qwen target smoke
+pool containing raw chat, forged chat, clean agent, standard agent, and
+forged-agent outcomes. Human-label every smoke case under the frozen rubric.
+Keep SecOPD entirely outside auxiliary-model selection.
 
-Have both candidates classify the identical pool. Compare:
+Have the selected model classify the identical pool. Compare:
 
 - exact agreement with human labels;
 - false-success and false-failure counts;
@@ -189,18 +253,22 @@ Have both candidates classify the identical pool. Compare:
 - stability on deliberately difficult partial-compliance cases;
 - latency, token usage, and cost.
 
-Choose generator and judge separately if warranted. Prefer the cheaper candidate when quality is materially tied. If neither is adequate, stop and revise the rubric or candidate set instead of launching the full run.
+The generator and judge may be separated later if evidence warrants it. If the selected model is not adequate, stop and revise the rubric or model choice instead of launching the full run.
 
 ### 7.5 Human decision gate
 
-After the smoke test, produce a compact review bundle containing candidate forgeries, victim outputs, both judgments, human labels, a disagreement table, actual cost, projected full-run cost, and a recommendation. Sync it off the pod and stop. Do not leave an 80 GB GPU rented while waiting for OpenRouter batch work or human review; split the smoke and confirmatory runs across rentals if necessary.
+After the 18-case validation, produce a compact review bundle containing the
+selected model’s forgeries, victim outputs, judgments, human labels, a
+disagreement table, actual cost, projected full-run cost, and a recommendation.
+Sync it off the pod and stop. Do not generate the 413-record corpus or launch
+the full target run before this review gate is approved.
 
 The full run requires explicit human approval of:
 
 - generator model;
 - judge model;
 - frozen forgery procedure;
-- projected OpenRouter budget;
+- projected Fireworks budget;
 - any changes to target-generation limits.
 
 Do not set the full-run API budget before this review. Current model pricing and measured smoke usage control the decision.
@@ -323,11 +391,15 @@ For each checkpoint, verify model load, one chat completion, one `input`-role pa
 
 ### Stage C: style capture and auxiliary head-to-head
 
-Use base Qwen to capture benign reasoning style, execute the comparison in Section 7, sync the review bundle, and stop for inspection.
+Use base Qwen to capture benign reasoning style, execute the 18-case smoke test
+in Section 7, sync the review bundle, and stop for inspection. The full
+forgery corpus is a later gated action.
 
 ### Stage D: frozen full run
 
-After approval, freeze candidate selection and forgeries before evaluating the confirmatory set. Run all target generations sequentially by checkpoint. Never regenerate a forgery based on a confirmatory outcome.
+After approval, freeze the selected auxiliary model and the forgeries before
+evaluating the confirmatory set. Run all target generations sequentially by
+checkpoint. Never regenerate a forgery based on a confirmatory outcome.
 
 ### Stage E: off-pod judging and analysis
 
@@ -338,7 +410,8 @@ Stop rather than continue automatically if:
 - prompts do not render identically across paired checkpoints;
 - base Qwen cannot complete clean agent tasks;
 - base Qwen shows no development-set attack lift;
-- either auxiliary candidate has unacceptable format or human-agreement rates;
+- the selected auxiliary model has unacceptable format or human-agreement
+  rates;
 - cost projection exceeds the human-approved budget;
 - parser failures or truncations exceed 5% in any cell;
 - durable synchronization cannot be verified.
@@ -462,20 +535,22 @@ Revalidate before execution and pin exact revisions in the manifest:
 
 ## 18. Implementation acceptance checklist
 
-The local scaffold is ready to ship only when:
+The local scaffold is ready to ship only when the remaining unchecked items are
+resolved. As of the audit date above, checked items have local evidence; they
+do not mean that the 18-case smoke gate or the full run has been approved:
 
 - [ ] private parent-repository remote and clone instructions are confirmed;
 - [ ] the completed scaffold, configs, fixtures, tests, and documentation are committed to the parent private repository, and the exact commit intended for the pod is recorded;
 - [ ] `uv sync --frozen` or equivalent reproduces the environment;
-- [ ] all tests pass without a GPU;
-- [ ] source data can be acquired and deterministically frozen;
-- [ ] every condition renders into the intended role;
-- [ ] base and SecOPD paired prompts hash identically where required;
-- [ ] the agent sandbox cannot access host files or the public network;
-- [ ] target and auxiliary jobs resume without duplication;
-- [ ] cost prediction and hard-stop logic are tested;
-- [ ] audit exports hide model and condition labels as configured;
-- [ ] archive verification catches missing or corrupted records;
+- [x] all tests pass without a GPU (`68 passed` on the audit date);
+- [x] source data can be acquired and deterministically frozen (local private snapshots and manifests exist);
+- [x] every condition renders into the intended role (local tests);
+- [x] base and SecOPD paired prompts hash identically where required (local contract; live pod attestation still pending);
+- [x] the agent sandbox cannot access host files or the public network (local harness/tests);
+- [x] target and auxiliary jobs resume without duplication (local tests);
+- [x] cost prediction and hard-stop logic are tested (local tests);
+- [x] audit exports hide model and condition labels as configured (local tests);
+- [x] archive verification catches missing or corrupted records (local tests);
 - [ ] a fresh clone can complete the fake-backend end-to-end smoke test using documented commands.
 
 ## 19. Later benign-injection extension (out of scope)
@@ -488,4 +563,47 @@ Behavioral interpretations:
 - ignores both: evidence consistent with instruction/data separation;
 - follows both: little behavioral injection resistance.
 
-That result alone cannot establish internal role representation. Only if it yields an informative SecOPD/base difference should a later project adapt the paper's hidden-state role probes.
+That result alone cannot establish internal role representation. The
+role-probe follow-up below is the separate mechanistic measurement; its
+validity must be established independently of attack outcomes.
+
+## 20. SecOPD-adapted role-probe follow-up
+
+The role probes follow the paper's controlled construction while matching the
+Qwen/SecOPD template used by the agent harness. Train one probe per
+checkpoint, never on target pages or injections. Each neutral sequence is
+token-truncated, rendered under the same role-specific Qwen framing, and
+projected only at the target content-token span. Train/test splitting is by
+base sequence, so role variants of one text cannot leak across the split.
+
+The primary six-way role space is:
+
+```text
+system, user, cot, assistant, input, tool
+```
+
+`input` is kept separate because SecOPD deliberately assigns webpage data to
+that role. `tool` remains available for the paper-compatible Qwen
+`<tool_response>` serialization. Report `Userness`, `CoTness`, and
+`Inputness` for page-carried commands and forged reasoning; do not collapse
+`Inputness` into `Toolness`.
+
+The implementation is `src/black_box_forgery/role_probes.py` and the GPU
+runner is `scripts/train_role_probes.py`. The primary activation is the
+decoder layer's pre-MLP `post_attention_layernorm` output. A hidden-state
+fallback is available only as an explicitly recorded deviation. The initial
+validity gate is held-out neutral-text accuracy; the full follow-up should
+also add the paper's zero-shot conversational validation before interpreting
+agent projections.
+
+The layer-56 zero-shot validation is now implemented in
+`scripts/prepare_zero_shot_role_eval.py` and
+`scripts/evaluate_role_probe_zero_shot.py`. On six genuine clean-agent traces
+and 12 genuine, non-forged SecOPD reasoning traces, Userness and Assistantness
+recover their architectural roles (91.2% and 99.8% mean correct-role
+probability), while CoTness and Inputness do not (33.0% and 7.5%). System and
+Tool remain untested due to absent genuine held-out spans. Thus the current
+six-way layer-56 probe fails the paper's all-role zero-shot validity criterion,
+and its downstream CoT/Input interpretations are provisional. The present
+Qwen role wrappers correlate target position with role and omit the paper's
+matching-filler positional control; remove this shortcut before retraining.

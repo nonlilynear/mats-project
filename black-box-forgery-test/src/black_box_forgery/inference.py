@@ -14,6 +14,12 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Protocol, Sequence, Union
 
 from .data import canonical_json, sha256_text
+from .rendering import (
+    local_template_contract,
+    prompt_sha256,
+    render_qwen36_upstream_template,
+    validate_template_contract,
+)
 from .schemas import (
     DecodingParams,
     EpisodeRequest,
@@ -107,6 +113,72 @@ class ScriptedBackend:
 FakeBackend = ScriptedBackend
 
 
+def _openai_wire_messages(messages: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Normalize local messages to the strict OpenAI/vLLM wire shape.
+
+    Local agent records intentionally use a compact tool-call representation
+    (``id``, ``name``, and parsed ``arguments``).  The OpenAI-compatible API
+    instead requires assistant tool calls nested under ``function`` with JSON
+    arguments encoded as a string.  Optional ``None`` fields are omitted too:
+    some vLLM versions reject ``name: null`` during request validation.
+    """
+
+    wire_messages: list[dict[str, Any]] = []
+    for message_index, raw_message in enumerate(messages):
+        if not isinstance(raw_message, Mapping):
+            raise BackendError(f"message {message_index} must be an object")
+        message = {
+            str(key): value for key, value in raw_message.items() if value is not None
+        }
+        if message.get("role") != "assistant":
+            message.pop("tool_calls", None)
+        if message.get("role") == "assistant" and "tool_calls" in message:
+            wire_calls: list[dict[str, Any]] = []
+            raw_calls = message.get("tool_calls") or []
+            if not isinstance(raw_calls, Sequence) or isinstance(raw_calls, (str, bytes)):
+                raise BackendError("assistant tool_calls must be a list")
+            for call_index, raw_call in enumerate(raw_calls):
+                if not isinstance(raw_call, Mapping):
+                    raise BackendError(f"assistant tool call {call_index} must be an object")
+                raw_function = raw_call.get("function")
+                function = raw_function if isinstance(raw_function, Mapping) else raw_call
+                name = function.get("name")
+                if not isinstance(name, str) or not name:
+                    raise BackendError(f"assistant tool call {call_index} has no function name")
+                arguments = function.get("arguments", {})
+                if isinstance(arguments, str):
+                    encoded_arguments = arguments
+                else:
+                    encoded_arguments = json.dumps(
+                        arguments, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                    )
+                call_id = raw_call.get("id") or f"call-{call_index + 1}"
+                wire_calls.append(
+                    {
+                        "id": str(call_id),
+                        "type": "function",
+                        "function": {"name": name, "arguments": encoded_arguments},
+                    }
+                )
+            message["tool_calls"] = wire_calls
+        elif message.get("role") == "tool":
+            # ``name`` is a local audit convenience and is not needed by the
+            # current vLLM tool-message schema.
+            message.pop("name", None)
+        wire_messages.append(message)
+    return wire_messages
+
+
+def _http_error_detail(error: urllib.error.HTTPError, *, limit: int = 4000) -> str:
+    """Include a bounded provider response body in durable backend errors."""
+
+    try:
+        body = error.read().decode("utf-8", errors="replace").strip()
+    except OSError:
+        body = ""
+    return body[:limit] if body else str(error)
+
+
 class OpenAICompatibleBackend:
     """Minimal explicit HTTP client for vLLM/OpenAI-compatible endpoints.
 
@@ -122,6 +194,8 @@ class OpenAICompatibleBackend:
         api_key: Optional[str] = None,
         timeout_seconds: float = 120.0,
         allow_network: bool = False,
+        server_template_contract: Optional[Mapping[str, Any]] = None,
+        require_template_verification: bool = False,
     ) -> None:
         if not allow_network:
             raise BackendError(
@@ -131,11 +205,23 @@ class OpenAICompatibleBackend:
         self.model = model
         self.api_key = api_key
         self.timeout_seconds = timeout_seconds
+        self.server_template_contract = _resolve_template_attestation(
+            server_template_contract, require_template_verification
+        )
 
     def complete(self, request: EpisodeRequest) -> BackendResponse:
+        rendered_prompt = render_qwen36_upstream_template(
+            [message.model_dump(mode="json") for message in request.messages],
+            enable_thinking=request.decoding.thinking_enabled,
+        )
+        # ``Message`` keeps optional fields explicit for the local record
+        # schema, but vLLM's request model rejects ``name: null``.
+        messages = _openai_wire_messages(
+            [message.model_dump(mode="json") for message in request.messages]
+        )
         payload = {
             "model": self.model,
-            "messages": [message.model_dump(mode="json") for message in request.messages],
+            "messages": messages,
             "temperature": request.decoding.temperature,
             "top_p": request.decoding.top_p,
             "seed": request.decoding.seed,
@@ -154,6 +240,10 @@ class OpenAICompatibleBackend:
         try:
             with urllib.request.urlopen(http_request, timeout=self.timeout_seconds) as response:
                 data = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            raise BackendError(
+                f"backend request failed: HTTP {exc.code}: {_http_error_detail(exc)}"
+            ) from exc
         except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
             raise BackendError(f"backend request failed: {exc}") from exc
         try:
@@ -171,7 +261,14 @@ class OpenAICompatibleBackend:
                 input_tokens=usage.get("prompt_tokens"),
                 output_tokens=usage.get("completion_tokens"),
                 status=status,
-                metadata={"served_model": data.get("model"), "id": data.get("id")},
+                metadata={
+                    "served_model": data.get("model"),
+                    "id": data.get("id"),
+                    **_prompt_integrity_metadata(
+                        rendered_prompt,
+                        server_template_contract=self.server_template_contract,
+                    ),
+                },
             )
         except (KeyError, IndexError, TypeError) as exc:
             raise BackendError("backend response has an unexpected shape") from exc
@@ -199,6 +296,8 @@ class OpenAICompatibleAgentModel:
         top_p: float = 1.0,
         enable_thinking: bool = True,
         allow_network: bool = False,
+        server_template_contract: Optional[Mapping[str, Any]] = None,
+        require_template_verification: bool = False,
     ) -> None:
         if not allow_network:
             raise BackendError(
@@ -214,6 +313,9 @@ class OpenAICompatibleAgentModel:
         self.temperature = temperature
         self.top_p = top_p
         self.enable_thinking = enable_thinking
+        self.server_template_contract = _resolve_template_attestation(
+            server_template_contract, require_template_verification
+        )
 
     def complete(
         self,
@@ -223,10 +325,11 @@ class OpenAICompatibleAgentModel:
         max_new_tokens: int,
         rendered_prompt: str,
     ) -> Mapping[str, Any]:
-        del rendered_prompt  # vLLM applies the configured chat template server-side.
+        if not isinstance(rendered_prompt, str) or not rendered_prompt:
+            raise BackendError("a non-empty local rendered prompt is required for integrity tracking")
         payload = {
             "model": self.model,
-            "messages": [dict(message) for message in messages],
+            "messages": _openai_wire_messages(messages),
             "tools": [dict(tool) for tool in tools],
             "tool_choice": "auto",
             "temperature": self.temperature,
@@ -245,11 +348,95 @@ class OpenAICompatibleAgentModel:
         try:
             with urllib.request.urlopen(http_request, timeout=self.timeout_seconds) as response:
                 data = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            raise BackendError(
+                f"agent backend request failed: HTTP {exc.code}: {_http_error_detail(exc)}"
+            ) from exc
         except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
             raise BackendError(f"agent backend request failed: {exc}") from exc
         if not isinstance(data, Mapping):
             raise BackendError("agent backend response must be a JSON object")
-        return data
+        # The OpenAI-compatible API returns only the model response; it does
+        # not expose the bytes produced by its chat template.  Preserve that
+        # distinction in-band for the agent artifact writer instead of
+        # allowing callers to mistake the local reference hash for a wire hash.
+        result = dict(data)
+        result["_bbf_prompt_integrity"] = _prompt_integrity_metadata(
+            rendered_prompt,
+            server_template_contract=self.server_template_contract,
+        )
+        return result
+
+
+def _resolve_template_attestation(
+    attestation: Optional[Mapping[str, Any]],
+    required: bool,
+) -> Optional[dict[str, str]]:
+    if attestation is None:
+        if required:
+            raise BackendError(
+                "server template verification is required; provide an endpoint contract attestation"
+            )
+        return None
+    try:
+        return validate_template_contract(attestation)
+    except ValueError as exc:
+        raise BackendError(f"invalid server template attestation: {exc}") from exc
+
+
+def _prompt_integrity_metadata(
+    rendered_prompt: str,
+    *,
+    server_template_contract: Optional[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Describe local and endpoint-side prompt integrity without conflating them."""
+
+    local_contract = local_template_contract()
+    return {
+        "prompt_integrity_schema": "1",
+        "local_template_contract": local_contract,
+        "local_rendered_prompt_sha256": prompt_sha256(rendered_prompt),
+        # Neither OpenAI-compatible response shape exposes the serialized
+        # prompt, so this must remain null even when the template is attested.
+        "wire_prompt_sha256": None,
+        "wire_template_status": (
+            "server_template_attested"
+            if server_template_contract is not None
+            else "server_template_unverified"
+        ),
+        "server_template_contract": dict(server_template_contract or {}),
+    }
+
+
+def fetch_endpoint_template_contract(
+    *,
+    base_url: str,
+    timeout_seconds: float = 10.0,
+    allow_network: bool = False,
+) -> dict[str, str]:
+    """Fetch and validate the pod-side template attestation.
+
+    A thin pod wrapper should expose ``GET /bbf/template-contract`` and
+    return the checked-in contract fields plus
+    ``verification_method: "endpoint_contract"``.  This is intentionally an
+    explicit, opt-in call: the normal completion endpoint cannot prove which
+    chat template it used.
+    """
+
+    if not allow_network:
+        raise BackendError("network backend disabled; pass allow_network=True explicitly")
+    request = urllib.request.Request(
+        f"{base_url.rstrip('/')}/bbf/template-contract", method="GET"
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+            attestation = json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+        raise BackendError(f"template contract probe failed: {exc}") from exc
+    try:
+        return validate_template_contract(attestation)
+    except ValueError as exc:
+        raise BackendError(f"template contract probe returned an invalid attestation: {exc}") from exc
 
 
 def make_request(

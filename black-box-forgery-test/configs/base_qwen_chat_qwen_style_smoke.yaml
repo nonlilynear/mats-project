@@ -1,0 +1,19 @@
+# Chat-only follow-up: regenerate Qwen-style CoT forgeries, then rerun raw/COT chat.
+schema_version: "1.0"
+name: base-qwen-chat-qwen-style-smoke
+master_seed: 20260903
+chat_prompts_path: runs/base-qwen-5-channel-smoke-20260904/inputs/strongreject-12.jsonl
+chat_prompts_revision: df54272b395ce9e584d2f8140519935425d8549f
+chat_prompts_authorized: true
+cot_forgery_path: runs/qwen-style-chat-forgery-regeneration-20260905/forgeries/chat-qwen-style-12.json
+cot_forgery_max_paragraphs: 16
+require_complete_cot_forgeries: true
+seed: 123
+temperature: 0.0
+top_p: 1.0
+thinking_enabled: true
+max_new_tokens: 4096
+max_turns: 8
+conditions:
+  - raw_chat
+  - cot_chat

@@ -1,0 +1,18 @@
+schema_version: "1.0"
+name: base-qwen-agent-18-smoke
+master_seed: 20260903
+agent_pages_index: runs/base-qwen-5-channel-smoke-20260904/inputs/pages.jsonl
+agent_pages_revision: 20231101.en-development-six-page-subset
+cot_forgery_path: runs/base-qwen-5-channel-smoke-20260904/forgeries/cot-forgeries-18.json
+cot_forgery_max_paragraphs: 1
+require_complete_cot_forgeries: true
+seed: 123
+temperature: 0.0
+top_p: 1.0
+thinking_enabled: true
+max_new_tokens: 4096
+max_turns: 8
+conditions:
+  - clean_agent
+  - standard_agent
+  - cot_agent

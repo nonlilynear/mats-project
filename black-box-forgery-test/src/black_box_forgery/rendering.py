@@ -43,6 +43,11 @@ _KNOWN_CONTROL_TOKEN_RE = re.compile(
     r"|(?:</s>|<s>|<\|end\|>)"
 )
 
+# This is a contract for the copied template and the preprocessing rules in
+# this module.  It is deliberately separate from a rendered-prompt hash:
+# vLLM may still render the structured messages itself at request time.
+PROMPT_CONTRACT_VERSION = "qwen36-upstream-v1"
+
 
 class PromptContractError(ValueError):
     """Raised when a message sequence violates the role/template contract."""
@@ -194,6 +199,11 @@ def prepare_messages_for_upstream_template(
         item: dict[str, Any] = {
             "role": message.role,
             "content": escape_control_tokens(message.content),
+            # The copied Jinja template uses StrictUndefined and tests
+            # ``message.tool_calls`` even for ordinary user/input/assistant
+            # messages. Supplying the empty default keeps Jinja and the
+            # dependency-free compatibility renderer behavior identical.
+            "tool_calls": [],
         }
         # Preserve assistant/tool metadata needed by the exact template while
         # escaping every nested string before interpolation.
@@ -472,6 +482,47 @@ def prompt_sha256(rendered_prompt: str) -> str:
     return hashlib.sha256(rendered_prompt.encode("utf-8")).hexdigest()
 
 
+def local_template_contract() -> dict[str, str]:
+    """Return the deterministic contract a pod must attest before a run.
+
+    The template digest alone is not a wire-prompt digest.  It identifies the
+    exact checked-in source that the endpoint must use, while the contract
+    version identifies the Python-side escaping/serialization rules.
+    """
+
+    return {
+        "contract_version": PROMPT_CONTRACT_VERSION,
+        "template_path": str(template_path().name),
+        "template_sha256": hashlib.sha256(template_path().read_bytes()).hexdigest(),
+    }
+
+
+def validate_template_contract(attestation: Mapping[str, Any]) -> dict[str, str]:
+    """Fail closed unless an endpoint attests the checked-in template.
+
+    An attestation is only considered sufficient when it explicitly comes
+    from the pod's endpoint contract probe.  Merely supplying a matching hash
+    in a client config is not treated as verification.
+    """
+
+    if not isinstance(attestation, Mapping):
+        raise PromptMismatchError("server template attestation must be an object")
+    expected = local_template_contract()
+    for key, value in expected.items():
+        if attestation.get(key) != value:
+            raise PromptMismatchError(
+                f"server template contract mismatch for {key}: "
+                f"expected {value!r}, got {attestation.get(key)!r}"
+            )
+    if attestation.get("verification_method") != "endpoint_contract":
+        raise PromptMismatchError(
+            "server template attestation must use verification_method='endpoint_contract'"
+        )
+    # Retain the proof method in the normalized record so response metadata
+    # remains auditable rather than reducing an attestation to a bare hash.
+    return {**expected, "verification_method": "endpoint_contract"}
+
+
 def assert_paired_byte_identical(*rendered_prompts: str) -> str:
     """Assert that all paired prompts are byte-identical and return their hash."""
 
@@ -508,6 +559,8 @@ __all__ = [
     "contains_unescaped_control_token",
     "escape_control_tokens",
     "prompt_sha256",
+    "PROMPT_CONTRACT_VERSION",
+    "local_template_contract",
     "prepare_messages_for_upstream_template",
     "render_agent_prompt",
     "render_qwen36_chat_template",
@@ -516,6 +569,7 @@ __all__ = [
     "render_with_upstream_template",
     "serialize_qwen_messages",
     "template_path",
+    "validate_template_contract",
     "validate_agent_prompt",
     "validate_message_sequence",
 ]

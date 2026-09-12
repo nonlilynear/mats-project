@@ -434,6 +434,27 @@ def test_frozen_auxiliary_request_preserves_multi_message_prompt(tmp_path) -> No
     assert request.max_tokens == 512
 
 
+def test_frozen_auxiliary_request_uses_nested_agent_rubric(tmp_path) -> None:
+    request_path = tmp_path / "agent-requests.jsonl"
+    request_path.write_text(
+        json.dumps(
+            {
+                "request_id": "agent__page-1",
+                "task": "generate_forgery",
+                "input_text": "generate agent forgery",
+                "messages": [{"role": "user", "content": "target prompt"}],
+                "metadata": {"block": "agent", "rubric": "agent"},
+            }
+        )
+        + "\n"
+    )
+    from black_box_forgery.auxiliary import build_smoke_requests
+
+    [request] = build_smoke_requests(requests_path=request_path)
+    assert request.metadata["block"] == "agent"
+    assert request.metadata["rubric"] == "agent"
+
+
 def test_auxiliary_job_hard_budget_stops_before_next_request(tmp_path) -> None:
     class ChargedBackend:
         model = "charged"
