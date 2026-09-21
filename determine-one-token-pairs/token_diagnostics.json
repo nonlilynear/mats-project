@@ -1,0 +1,1429 @@
+{
+  "model": "Qwen/Qwen3.6-27B",
+  "backend": "hf",
+  "contexts": [
+    "standalone",
+    "space",
+    "newline"
+  ],
+  "pairs_seen": 16,
+  "pairs_kept": 7,
+  "items": {
+    "Q": {
+      "item": "Q",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            48
+          ],
+          "token_strings": [
+            "Q"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            1167
+          ],
+          "token_strings": [
+            "ĠQ"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            48
+          ],
+          "token_strings": [
+            "Ċ",
+            "Q"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "Z": {
+      "item": "Z",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            57
+          ],
+          "token_strings": [
+            "Z"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            1799
+          ],
+          "token_strings": [
+            "ĠZ"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            57
+          ],
+          "token_strings": [
+            "Ċ",
+            "Z"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "apple": {
+      "item": "apple",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            21680
+          ],
+          "token_strings": [
+            "apple"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            22544
+          ],
+          "token_strings": [
+            "Ġapple"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            21680
+          ],
+          "token_strings": [
+            "Ċ",
+            "apple"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "blue": {
+      "item": "blue",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            11855
+          ],
+          "token_strings": [
+            "blue"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            6105
+          ],
+          "token_strings": [
+            "Ġblue"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            11855
+          ],
+          "token_strings": [
+            "Ċ",
+            "blue"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "cat": {
+      "item": "cat",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            4466
+          ],
+          "token_strings": [
+            "cat"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            7993
+          ],
+          "token_strings": [
+            "Ġcat"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            4466
+          ],
+          "token_strings": [
+            "Ċ",
+            "cat"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "chrysanthemum": {
+      "item": "chrysanthemum",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            329,
+            39960,
+            30205,
+            334,
+            367
+          ],
+          "token_strings": [
+            "ch",
+            "rys",
+            "anth",
+            "em",
+            "um"
+          ],
+          "item_token_count": 5,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            509,
+            39960,
+            30205,
+            334,
+            367
+          ],
+          "token_strings": [
+            "Ġch",
+            "rys",
+            "anth",
+            "em",
+            "um"
+          ],
+          "item_token_count": 5,
+          "one_token": false
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            329,
+            39960,
+            30205,
+            334,
+            367
+          ],
+          "token_strings": [
+            "Ċ",
+            "ch",
+            "rys",
+            "anth",
+            "em",
+            "um"
+          ],
+          "item_token_count": 5,
+          "one_token": false
+        }
+      }
+    },
+    "circle": {
+      "item": "circle",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            25033
+          ],
+          "token_strings": [
+            "circle"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            12307
+          ],
+          "token_strings": [
+            "Ġcircle"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            25033
+          ],
+          "token_strings": [
+            "Ċ",
+            "circle"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "coffee": {
+      "item": "coffee",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            75440
+          ],
+          "token_strings": [
+            "coffee"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            10482
+          ],
+          "token_strings": [
+            "Ġcoffee"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            75440
+          ],
+          "token_strings": [
+            "Ċ",
+            "coffee"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "dog": {
+      "item": "dog",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            17907
+          ],
+          "token_strings": [
+            "dog"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            5388
+          ],
+          "token_strings": [
+            "Ġdog"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            17907
+          ],
+          "token_strings": [
+            "Ċ",
+            "dog"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "dwarf": {
+      "item": "dwarf",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            67,
+            31554
+          ],
+          "token_strings": [
+            "d",
+            "warf"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            47797
+          ],
+          "token_strings": [
+            "Ġdwarf"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            67,
+            31554
+          ],
+          "token_strings": [
+            "Ċ",
+            "d",
+            "warf"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "elf": {
+      "item": "elf",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            480
+          ],
+          "token_strings": [
+            "elf"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            39399
+          ],
+          "token_strings": [
+            "Ġelf"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            480
+          ],
+          "token_strings": [
+            "Ċ",
+            "elf"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "fork": {
+      "item": "fork",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            43250
+          ],
+          "token_strings": [
+            "fork"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            21736
+          ],
+          "token_strings": [
+            "Ġfork"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            43250
+          ],
+          "token_strings": [
+            "Ċ",
+            "fork"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "hydrangea": {
+      "item": "hydrangea",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            24373,
+            818,
+            64
+          ],
+          "token_strings": [
+            "hydr",
+            "ange",
+            "a"
+          ],
+          "item_token_count": 3,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            43127,
+            818,
+            64
+          ],
+          "token_strings": [
+            "Ġhydr",
+            "ange",
+            "a"
+          ],
+          "item_token_count": 3,
+          "one_token": false
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            24373,
+            818,
+            64
+          ],
+          "token_strings": [
+            "Ċ",
+            "hydr",
+            "ange",
+            "a"
+          ],
+          "item_token_count": 3,
+          "one_token": false
+        }
+      }
+    },
+    "left": {
+      "item": "left",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            2282
+          ],
+          "token_strings": [
+            "left"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            2047
+          ],
+          "token_strings": [
+            "Ġleft"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            2282
+          ],
+          "token_strings": [
+            "Ċ",
+            "left"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "maple": {
+      "item": "maple",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            2117,
+            273
+          ],
+          "token_strings": [
+            "map",
+            "le"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            52556
+          ],
+          "token_strings": [
+            "Ġmaple"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            2117,
+            273
+          ],
+          "token_strings": [
+            "Ċ",
+            "map",
+            "le"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "north pole": {
+      "item": "north pole",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            59810,
+            24233
+          ],
+          "token_strings": [
+            "north",
+            "Ġpole"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            9897,
+            24233
+          ],
+          "token_strings": [
+            "Ġnorth",
+            "Ġpole"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            59810,
+            24233
+          ],
+          "token_strings": [
+            "Ċ",
+            "north",
+            "Ġpole"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "oak": {
+      "item": "oak",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            78,
+            570
+          ],
+          "token_strings": [
+            "o",
+            "ak"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            36620
+          ],
+          "token_strings": [
+            "Ġoak"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            78,
+            570
+          ],
+          "token_strings": [
+            "Ċ",
+            "o",
+            "ak"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "orange": {
+      "item": "orange",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            33034
+          ],
+          "token_strings": [
+            "orange"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            18016
+          ],
+          "token_strings": [
+            "Ġorange"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            33034
+          ],
+          "token_strings": [
+            "Ċ",
+            "orange"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "pen": {
+      "item": "pen",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            2664
+          ],
+          "token_strings": [
+            "pen"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            5572
+          ],
+          "token_strings": [
+            "Ġpen"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            2664
+          ],
+          "token_strings": [
+            "Ċ",
+            "pen"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "pencil": {
+      "item": "pencil",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            79,
+            16507
+          ],
+          "token_strings": [
+            "p",
+            "encil"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            44579
+          ],
+          "token_strings": [
+            "Ġpencil"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            79,
+            16507
+          ],
+          "token_strings": [
+            "Ċ",
+            "p",
+            "encil"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "polos": {
+      "item": "polos",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            9603,
+            428
+          ],
+          "token_strings": [
+            "pol",
+            "os"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            233923
+          ],
+          "token_strings": [
+            "Ġpolos"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            9603,
+            428
+          ],
+          "token_strings": [
+            "Ċ",
+            "pol",
+            "os"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "red": {
+      "item": "red",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            1114
+          ],
+          "token_strings": [
+            "red"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            2438
+          ],
+          "token_strings": [
+            "Ġred"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            1114
+          ],
+          "token_strings": [
+            "Ċ",
+            "red"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "right": {
+      "item": "right",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            1246
+          ],
+          "token_strings": [
+            "right"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            1245
+          ],
+          "token_strings": [
+            "Ġright"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            1246
+          ],
+          "token_strings": [
+            "Ċ",
+            "right"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "soccer": {
+      "item": "soccer",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            55113,
+            3700
+          ],
+          "token_strings": [
+            "soc",
+            "cer"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            21486
+          ],
+          "token_strings": [
+            "Ġsoccer"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            55113,
+            3700
+          ],
+          "token_strings": [
+            "Ċ",
+            "soc",
+            "cer"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "south pole": {
+      "item": "south pole",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            64240,
+            24233
+          ],
+          "token_strings": [
+            "south",
+            "Ġpole"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            9514,
+            24233
+          ],
+          "token_strings": [
+            "Ġsouth",
+            "Ġpole"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            64240,
+            24233
+          ],
+          "token_strings": [
+            "Ċ",
+            "south",
+            "Ġpole"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "spoon": {
+      "item": "spoon",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            2085,
+            8737
+          ],
+          "token_strings": [
+            "sp",
+            "oon"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            43988
+          ],
+          "token_strings": [
+            "Ġspoon"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            2085,
+            8737
+          ],
+          "token_strings": [
+            "Ċ",
+            "sp",
+            "oon"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "tea": {
+      "item": "tea",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            78781
+          ],
+          "token_strings": [
+            "tea"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            14799
+          ],
+          "token_strings": [
+            "Ġtea"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            78781
+          ],
+          "token_strings": [
+            "Ċ",
+            "tea"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "tennis": {
+      "item": "tennis",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            1893,
+            24353
+          ],
+          "token_strings": [
+            "ten",
+            "nis"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            30382
+          ],
+          "token_strings": [
+            "Ġtennis"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            1893,
+            24353
+          ],
+          "token_strings": [
+            "Ċ",
+            "ten",
+            "nis"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    },
+    "triangle": {
+      "item": "triangle",
+      "valid": true,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            53264
+          ],
+          "token_strings": [
+            "triangle"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            20837
+          ],
+          "token_strings": [
+            "Ġtriangle"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            53264
+          ],
+          "token_strings": [
+            "Ċ",
+            "triangle"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        }
+      }
+    },
+    "trumpet": {
+      "item": "trumpet",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            371,
+            1456,
+            294
+          ],
+          "token_strings": [
+            "tr",
+            "ump",
+            "et"
+          ],
+          "item_token_count": 3,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            88117
+          ],
+          "token_strings": [
+            "Ġtrumpet"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            371,
+            1456,
+            294
+          ],
+          "token_strings": [
+            "Ċ",
+            "tr",
+            "ump",
+            "et"
+          ],
+          "item_token_count": 3,
+          "one_token": false
+        }
+      }
+    },
+    "tshirts": {
+      "item": "tshirts",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            83,
+            898,
+            19065
+          ],
+          "token_strings": [
+            "t",
+            "sh",
+            "irts"
+          ],
+          "item_token_count": 3,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            259,
+            898,
+            19065
+          ],
+          "token_strings": [
+            "Ġt",
+            "sh",
+            "irts"
+          ],
+          "item_token_count": 3,
+          "one_token": false
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            83,
+            898,
+            19065
+          ],
+          "token_strings": [
+            "Ċ",
+            "t",
+            "sh",
+            "irts"
+          ],
+          "item_token_count": 3,
+          "one_token": false
+        }
+      }
+    },
+    "violin": {
+      "item": "violin",
+      "valid": false,
+      "contexts": {
+        "standalone": {
+          "prefix": "''",
+          "token_ids": [
+            9676,
+            35424
+          ],
+          "token_strings": [
+            "vi",
+            "olin"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        },
+        "space": {
+          "prefix": "' '",
+          "token_ids": [
+            59945
+          ],
+          "token_strings": [
+            "Ġviolin"
+          ],
+          "item_token_count": 1,
+          "one_token": true
+        },
+        "newline": {
+          "prefix": "'\\n'",
+          "token_ids": [
+            198,
+            9676,
+            35424
+          ],
+          "token_strings": [
+            "Ċ",
+            "vi",
+            "olin"
+          ],
+          "item_token_count": 2,
+          "one_token": false
+        }
+      }
+    }
+  }
+}
